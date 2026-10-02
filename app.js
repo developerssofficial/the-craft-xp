@@ -332,7 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.strokeStyle = el.color;
     ctx.fillStyle = el.color;
 
-    ctx.beginPath();
     const x = el.x;
     const y = el.y;
     const w = el.width;
@@ -340,24 +339,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     switch (el.shapeType) {
       case 'rectangle':
+        ctx.beginPath();
         if (el.fill) ctx.fillRect(x, y, w, h);
         else ctx.strokeRect(x, y, w, h);
         break;
 
       case 'circle':
+        ctx.beginPath();
         ctx.ellipse(x + w / 2, y + h / 2, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
         if (el.fill) ctx.fill();
         else ctx.stroke();
         break;
 
       case 'line':
+        ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(x + w, y + h);
         ctx.stroke();
         break;
 
       case 'arrow':
-        drawArrow(ctx, x, y, x + w, y + h, el.strokeWidth);
+        drawArrow(ctx, x, y, x + w, y + h, el.strokeWidth || 4);
         break;
 
       case 'star':
@@ -404,19 +406,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawArrow(ctx, fromX, fromY, toX, toY, strokeWidth = 4) {
-    const headLen = Math.max(16, strokeWidth * 2.5);
     const angle = Math.atan2(toY - fromY, toX - fromX);
+    const dist = Math.hypot(toX - fromX, toY - fromY);
+    if (dist < 4) return;
 
+    // Proportional, sharp arrowhead geometry
+    const headLen = Math.min(dist * 0.45, Math.max(22, strokeWidth * 3.5));
+    const headAngle = Math.PI / 6; // 30 degrees
+
+    // 1. Draw shaft line
+    ctx.beginPath();
     ctx.moveTo(fromX, fromY);
-    ctx.lineTo(toX, toY);
+    ctx.lineTo(
+      toX - (headLen * 0.5) * Math.cos(angle),
+      toY - (headLen * 0.5) * Math.sin(angle)
+    );
     ctx.stroke();
 
+    // 2. Draw sharp, filled arrowhead
     ctx.beginPath();
     ctx.moveTo(toX, toY);
-    ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+    ctx.lineTo(
+      toX - headLen * Math.cos(angle - headAngle),
+      toY - headLen * Math.sin(angle - headAngle)
+    );
+    ctx.lineTo(
+      toX - (headLen * 0.5) * Math.cos(angle),
+      toY - (headLen * 0.5) * Math.sin(angle)
+    );
+    ctx.lineTo(
+      toX - headLen * Math.cos(angle + headAngle),
+      toY - headLen * Math.sin(angle + headAngle)
+    );
     ctx.closePath();
+    ctx.fillStyle = ctx.strokeStyle;
     ctx.fill();
+    ctx.stroke();
   }
 
   function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, filled) {
