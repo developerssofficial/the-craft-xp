@@ -623,6 +623,33 @@ body {
   pointer-events: none;
 }
 
+/* Floating Inline Canvas Text Input */
+.inline-canvas-text {
+  position: absolute;
+  z-index: 25;
+  background: rgba(15, 17, 23, 0.75);
+  border: 1.5px dashed var(--accent);
+  border-radius: 4px;
+  outline: none;
+  padding: 4px 8px;
+  min-width: 140px;
+  min-height: 38px;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 600;
+  resize: both;
+  overflow: hidden;
+  line-height: 1.25;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+  backdrop-filter: blur(8px);
+  white-space: pre-wrap;
+  caret-color: var(--accent-cyan);
+}
+
+.inline-canvas-text:focus {
+  border-color: var(--accent-cyan);
+}
+
 /* Symmetry Line */
 .symmetry-guide {
   position: absolute;

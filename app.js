@@ -271,10 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (state.tool === 'text') {
-      state.textPendingCoords = { x, y };
-      textInputModal.classList.remove('hidden');
-      canvasTextInput.value = '';
-      canvasTextInput.focus();
+      openInlineTextInput(x, y);
       return;
     }
 
@@ -591,25 +588,91 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.restore();
   }
 
-  function commitText(text, fontSize) {
-    if (!state.textPendingCoords || !text) return;
-    const { x, y } = state.textPendingCoords;
+  // Inline Text Editor Element
+  const inlineTextInput = document.getElementById('inlineCanvasTextInput');
+  let activeTextPos = null;
 
-    paintCtx.save();
-    paintCtx.font = `600 ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
-    paintCtx.fillStyle = state.color;
-    paintCtx.globalAlpha = state.opacity;
-    paintCtx.fillText(text, x, y);
+  function openInlineTextInput(x, y) {
+    commitInlineText(); // Commit any existing open text
 
-    if (state.symmetryMode) {
-      paintCtx.fillText(text, state.canvasWidth - x, y);
-    }
-    paintCtx.restore();
+    activeTextPos = { x, y };
+    const fontSize = Math.max(18, state.size * 2.5);
 
-    state.textPendingCoords = null;
-    saveState();
-    showToast('Text inserted on canvas');
+    inlineTextInput.style.left = `${x}px`;
+    inlineTextInput.style.top = `${y}px`;
+    inlineTextInput.style.fontSize = `${fontSize}px`;
+    inlineTextInput.style.color = state.color;
+    inlineTextInput.style.opacity = state.opacity;
+    inlineTextInput.value = '';
+    inlineTextInput.classList.remove('hidden');
+
+    setTimeout(() => {
+      inlineTextInput.focus();
+    }, 10);
   }
+
+  function commitInlineText() {
+    if (!activeTextPos || inlineTextInput.classList.contains('hidden')) return;
+
+    const text = inlineTextInput.value.trim();
+    if (text) {
+      const fontSize = Math.max(18, state.size * 2.5);
+      const lineHeight = fontSize * 1.25;
+      const lines = inlineTextInput.value.split('\n');
+
+      paintCtx.save();
+      paintCtx.font = `600 ${fontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
+      paintCtx.fillStyle = state.color;
+      paintCtx.globalAlpha = state.opacity;
+      paintCtx.textBaseline = 'top';
+
+      lines.forEach((line, index) => {
+        const lineY = activeTextPos.y + (index * lineHeight);
+        paintCtx.fillText(line, activeTextPos.x, lineY);
+
+        if (state.symmetryMode) {
+          paintCtx.fillText(line, state.canvasWidth - activeTextPos.x, lineY);
+        }
+      });
+
+      paintCtx.restore();
+      saveState();
+      showToast('Text added to canvas');
+    }
+
+    inlineTextInput.classList.add('hidden');
+    inlineTextInput.value = '';
+    activeTextPos = null;
+  }
+
+  inlineTextInput.addEventListener('blur', () => {
+    commitInlineText();
+  });
+
+  inlineTextInput.addEventListener('keydown', (e) => {
+    e.stopPropagation(); // Stop keyboard shortcuts while typing
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      commitInlineText();
+    } else if (e.key === 'Escape') {
+      inlineTextInput.classList.add('hidden');
+      inlineTextInput.value = '';
+      activeTextPos = null;
+    }
+  });
+
+  // Auto-resize textarea height
+  inlineTextInput.addEventListener('input', () => {
+    inlineTextInput.style.height = 'auto';
+    inlineTextInput.style.height = `${inlineTextInput.scrollHeight}px`;
+  });
+
+  // Double click on canvas anywhere to start typing
+  viewport.addEventListener('dblclick', (e) => {
+    const { x, y } = getCoordinates(e);
+    setTool('text');
+    openInlineTextInput(x, y);
+  });
 
   // ==========================================
   // 11. Flood Fill
