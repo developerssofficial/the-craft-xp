@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Craft XP — Pro Digital Drawing & Design Studio</title>
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Application Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <!-- Toggle Left Sidebar Button -->
+      <button id="toggleLeftDockBtn" class="icon-btn" title="Toggle Tools Dock (Ctrl+B)">
+        <i class="fa-solid fa-bars-staggered"></i>
+      </button>
+
+      <div class="app-logo">
+        <div class="logo-badge">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">The Craft XP</span>
+          <span class="brand-tag">PRO</span>
+        </div>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Quick Action History -->
+      <div class="quick-history">
+        <button id="undoBtn" class="icon-btn" title="Undo (Ctrl+Z)" disabled>
+          <i class="fa-solid fa-arrow-rotate-left"></i>
+        </button>
+        <button id="redoBtn" class="icon-btn" title="Redo (Ctrl+Y)" disabled>
+          <i class="fa-solid fa-arrow-rotate-right"></i>
+        </button>
+        <button id="clearBtn" class="icon-btn danger" title="Clear Canvas">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Canvas View Controls -->
+    <div class="header-center">
+      <div class="zoom-pill">
+        <button id="zoomOutBtn" class="zoom-btn" title="Zoom Out (-)">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <span id="zoomLevel">100%</span>
+        <button id="zoomInBtn" class="zoom-btn" title="Zoom In (+)">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="zoomResetBtn" class="zoom-btn" title="Reset Zoom (0)">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Canvas Toggles -->
+      <div class="mode-toggles">
+        <button id="gridToggleBtn" class="toggle-pill" title="Toggle Grid Overlay">
+          <i class="fa-solid fa-border-all"></i>
+          <span>Grid</span>
+        </button>
+        <button id="symmetryToggleBtn" class="toggle-pill" title="Toggle Mirror / Symmetry Drawing">
+          <i class="fa-solid fa-compass-drafting"></i>
+          <span>Symmetry</span>
+        </button>
+        <button id="zenModeBtn" class="toggle-pill" title="Zen Mode / Fullscreen Canvas (Tab or F)">
+          <i class="fa-solid fa-expand"></i>
+          <span>Zen Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Controls: Background, Import, Export -->
+    <div class="header-right">
+      <!-- Background Theme Selector -->
+      <div class="bg-selector">
+        <i class="fa-solid fa-fill"></i>
+        <select id="bgPreset" title="Canvas Background Color">
+          <option value="#0f1117" selected>Dark Studio</option>
+          <option value="#ffffff">Pure White</option>
+          <option value="#1e1e2e">Deep Indigo</option>
+          <option value="#f8fafc">Light Slate</option>
+          <option value="#18181b">Onyx Dark</option>
+          <option value="transparent">Transparent (PNG)</option>
+        </select>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Image Import -->
+      <label for="imageUploadInput" class="btn secondary-btn" title="Upload Image / Reference">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Import</span>
+      </label>
+      <input type="file" id="imageUploadInput" accept="image/*" style="display:none;">
+
+      <!-- Export Dropdown -->
+      <div class="dropdown-wrapper" id="exportDropdownWrap">
+        <button id="exportDropdownBtn" class="btn primary-btn">
+          <i class="fa-solid fa-arrow-down-to-bracket"></i>
+          <span>Export</span>
+          <i class="fa-solid fa-chevron-down caret-icon"></i>
+        </button>
+        <div class="menu-dropdown" id="exportMenu">
+          <button id="savePngBtn">
+            <i class="fa-regular fa-image"></i>
+            <div>
+              <strong>Export as PNG</strong>
+              <small>Lossless & transparent</small>
+            </div>
+          </button>
+          <button id="saveJpgBtn">
+            <i class="fa-solid fa-file-image"></i>
+            <div>
+              <strong>Export as JPG</strong>
+              <small>Optimized white background</small>
+            </div>
+          </button>
+          <button id="copyClipboardBtn">
+            <i class="fa-regular fa-clipboard"></i>
+            <div>
+              <strong>Copy to Clipboard</strong>
+              <small>Paste directly anywhere</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Toggle Right Sidebar Button -->
+      <button id="toggleRightPanelBtn" class="icon-btn active-panel-toggle" title="Toggle Properties Panel">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Workspace Container -->
+  <div class="app-workspace" id="appWorkspace">
+    <!-- Left Floating Tool Dock -->
+    <nav class="tool-dock" id="toolDock">
+      <div class="dock-collapse-header">
+        <button id="collapseDockBtn" class="dock-collapse-btn" title="Hide Tools Dock">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <span class="group-label">Draw</span>
+        <button class="tool-item active" data-tool="brush" data-tooltip="Smooth Brush (B)">
+          <i class="fa-solid fa-paintbrush"></i>
+        </button>
+        <button class="tool-item" data-tool="pencil" data-tooltip="Fine Pencil (P)">
+          <i class="fa-solid fa-pencil"></i>
+        </button>
+        <button class="tool-item" data-tool="neon" data-tooltip="Neon Glow (G)">
+          <i class="fa-solid fa-bolt-lightning"></i>
+        </button>
+        <button class="tool-item" data-tool="rainbow" data-tooltip="Rainbow Stream (R)">
+          <i class="fa-solid fa-rainbow"></i>
+        </button>
+        <button class="tool-item" data-tool="spray" data-tooltip="Airbrush / Spray (A)">
+          <i class="fa-solid fa-spray-can"></i>
+        </button>
+        <button class="tool-item" data-tool="highlighter" data-tooltip="Highlighter (H)">
+          <i class="fa-solid fa-highlighter"></i>
+        </button>
+        <button class="tool-item" data-tool="eraser" data-tooltip="Eraser (E)">
+          <i class="fa-solid fa-eraser"></i>
+        </button>
+      </div>
+
+      <div class="dock-separator"></div>
+
+      <div class="tool-group">
+        <span class="group-label">Shapes</span>
+        <button class="tool-item" data-tool="line" data-tooltip="Straight Line (L)">
+          <i class="fa-solid fa-slash"></i>
+        </button>
+        <button class="tool-item" data-tool="arrow" data-tooltip="Arrow Pointer">
+          <i class="fa-solid fa-arrow-trend-up"></i>
+        </button>
+        <button class="tool-item" data-tool="rectangle" data-tooltip="Rectangle / Box">
+          <i class="fa-regular fa-square"></i>
+        </button>
+        <button class="tool-item" data-tool="circle" data-tooltip="Circle / Ellipse">
+          <i class="fa-regular fa-circle"></i>
+        </button>
+        <button class="tool-item" data-tool="star" data-tooltip="Star Shape">
+          <i class="fa-regular fa-star"></i>
+        </button>
+        <button class="tool-item" data-tool="heart" data-tooltip="Heart Shape">
+          <i class="fa-regular fa-heart"></i>
+        </button>
+      </div>
+
+      <div class="dock-separator"></div>
+
+      <div class="tool-group">
+        <span class="group-label">Tools</span>
+        <button class="tool-item" data-tool="fill" data-tooltip="Bucket Fill (F)">
+          <i class="fa-solid fa-fill-drip"></i>
+        </button>
+        <button class="tool-item" data-tool="pipette" data-tooltip="Eyedropper (I)">
+          <i class="fa-solid fa-eye-dropper"></i>
+        </button>
+        <button class="tool-item" data-tool="text" data-tooltip="Add Text (T)">
+          <i class="fa-solid fa-font"></i>
+        </button>
+        <button class="tool-item" data-tool="stamp" data-tooltip="Emoji Stamp">
+          <i class="fa-regular fa-face-smile"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Edge Re-open Triggers (visible when sidebars are collapsed) -->
+    <button id="leftEdgeTrigger" class="edge-tab left-edge" title="Show Tools (Ctrl+B)">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    <button id="rightEdgeTrigger" class="edge-tab right-edge" title="Show Properties Panel">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+
+    <!-- Canvas Viewport -->
+    <main class="canvas-stage" id="canvasStage">
+      <div class="canvas-board" id="canvasBoard">
+        <canvas id="gridCanvas"></canvas>
+        <canvas id="paintCanvas"></canvas>
+        <canvas id="previewCanvas"></canvas>
+        <canvas id="cursorCanvas"></canvas>
+      </div>
+      <!-- Symmetry Guide Line -->
+      <div class="symmetry-guide" id="symmetryGuide"></div>
+    </main>
+
+    <!-- Right Side Properties Panel -->
+    <aside class="properties-panel" id="propertiesPanel">
+      <div class="panel-collapse-header">
+        <span class="panel-main-title">Settings & Colors</span>
+        <button id="collapsePanelBtn" class="dock-collapse-btn" title="Hide Properties Panel">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Brush & Stroke Config Card -->
+      <div class="panel-section">
+        <div class="section-head">
+          <span class="head-title">Stroke Properties</span>
+          <div class="preview-ring" id="previewRing">
+            <div id="brushDotPreview"></div>
+          </div>
+        </div>
+
+        <!-- Stroke Width -->
+        <div class="field-item">
+          <div class="field-label">
+            <span>Brush Size</span>
+            <span id="sizeBadge" class="value-tag">8px</span>
+          </div>
+          <input type="range" id="brushSize" min="1" max="100" value="8" class="glow-slider">
+          <div class="preset-pills">
+            <button class="pill-btn" data-size="3">Fine (3)</button>
+            <button class="pill-btn active" data-size="8">Med (8)</button>
+            <button class="pill-btn" data-size="20">Bold (20)</button>
+            <button class="pill-btn" data-size="50">Thick (50)</button>
+          </div>
+        </div>
+
+        <!-- Opacity Slider -->
+        <div class="field-item">
+          <div class="field-label">
+            <span>Opacity</span>
+            <span id="opacityBadge" class="value-tag">100%</span>
+          </div>
+          <input type="range" id="brushOpacity" min="5" max="100" value="100" class="glow-slider">
+        </div>
+
+        <!-- Shape Fill Option -->
+        <div class="field-item shape-config hidden" id="shapeConfig">
+          <label class="toggle-checkbox">
+            <input type="checkbox" id="shapeFillCheck">
+            <span class="custom-box"></span>
+            <span>Fill Shape with Color</span>
+          </label>
+        </div>
+
+        <!-- Stamp Selector -->
+        <div class="field-item stamp-config hidden" id="stampConfig">
+          <span class="field-label">Select Stamp</span>
+          <div class="stamp-selector">
+            <button class="stamp-choice active" data-emoji="⭐">⭐</button>
+            <button class="stamp-choice" data-emoji="❤️">❤️</button>
+            <button class="stamp-choice" data-emoji="🔥">🔥</button>
+            <button class="stamp-choice" data-emoji="✨">✨</button>
+            <button class="stamp-choice" data-emoji="🚀">🚀</button>
+            <button class="stamp-choice" data-emoji="🎨">🎨</button>
+            <button class="stamp-choice" data-emoji="⚡">⚡</button>
+            <button class="stamp-choice" data-emoji="🌸">🌸</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Color Palette Card -->
+      <div class="panel-section">
+        <div class="section-head">
+          <span class="head-title">Color Palette</span>
+          <div class="active-color-swatch" id="activeColorSwatch" title="Current Active Color"></div>
+        </div>
+
+        <!-- Custom Color Trigger -->
+        <div class="color-picker-row">
+          <input type="color" id="nativeColorPicker" value="#6366f1">
+          <label for="nativeColorPicker" class="custom-picker-btn">
+            <i class="fa-solid fa-palette"></i>
+            <span>Pick Any Custom Color</span>
+          </label>
+          <span id="hexCodeBadge" class="hex-tag">#6366F1</span>
+        </div>
+
+        <!-- Curated Palette Grid -->
+        <div class="swatch-grid">
+          <button class="swatch-btn active" style="--c: #6366f1;" data-color="#6366f1" title="Indigo"></button>
+          <button class="swatch-btn" style="--c: #3b82f6;" data-color="#3b82f6" title="Vibrant Blue"></button>
+          <button class="swatch-btn" style="--c: #06b6d4;" data-color="#06b6d4" title="Cyan"></button>
+          <button class="swatch-btn" style="--c: #10b981;" data-color="#10b981" title="Emerald Green"></button>
+          <button class="swatch-btn" style="--c: #eab308;" data-color="#eab308" title="Sunny Yellow"></button>
+          <button class="swatch-btn" style="--c: #f97316;" data-color="#f97316" title="Bright Orange"></button>
+          <button class="swatch-btn" style="--c: #ef4444;" data-color="#ef4444" title="Crimson Red"></button>
+          <button class="swatch-btn" style="--c: #ec4899;" data-color="#ec4899" title="Hot Pink"></button>
+          <button class="swatch-btn" style="--c: #a855f7;" data-color="#a855f7" title="Purple"></button>
+          <button class="swatch-btn" style="--c: #00ffcc;" data-color="#00ffcc" title="Neon Teal"></button>
+          <button class="swatch-btn" style="--c: #ff007f;" data-color="#ff007f" title="Neon Rose"></button>
+          <button class="swatch-btn" style="--c: #ffffff;" data-color="#ffffff" title="Pure White"></button>
+          <button class="swatch-btn" style="--c: #94a3b8;" data-color="#94a3b8" title="Cool Gray"></button>
+          <button class="swatch-btn" style="--c: #334155;" data-color="#334155" title="Slate"></button>
+          <button class="swatch-btn" style="--c: #854d0e;" data-color="#854d0e" title="Warm Amber"></button>
+          <button class="swatch-btn" style="--c: #000000;" data-color="#000000" title="Jet Black"></button>
+        </div>
+      </div>
+
+      <!-- Quick Shortcuts Card -->
+      <div class="panel-section shortcuts-section">
+        <div class="section-head">
+          <span class="head-title">Keyboard Shortcuts</span>
+          <i class="fa-regular fa-keyboard text-muted"></i>
+        </div>
+        <div class="shortcut-grid">
+          <div class="shortcut-item"><kbd>B</kbd> <span>Brush</span></div>
+          <div class="shortcut-item"><kbd>E</kbd> <span>Eraser</span></div>
+          <div class="shortcut-item"><kbd>G</kbd> <span>Glow</span></div>
+          <div class="shortcut-item"><kbd>F</kbd> <span>Fill</span></div>
+          <div class="shortcut-item"><kbd>T</kbd> <span>Text</span></div>
+          <div class="shortcut-item"><kbd>Tab</kbd> <span>Zen Mode</span></div>
+          <div class="shortcut-item"><kbd>Ctrl+Z</kbd> <span>Undo</span></div>
+          <div class="shortcut-item"><kbd>[</kbd> <kbd>]</kbd> <span>Size</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Bottom Floating Color & Tool Dock (Enhanced with Full Custom Color Picker) -->
+  <div class="floating-quick-bar" id="floatingQuickBar">
+    <div class="quick-tools">
+      <button class="quick-btn active" data-action="brush" title="Brush (B)"><i class="fa-solid fa-paintbrush"></i></button>
+      <button class="quick-btn" data-action="pencil" title="Fine Pencil (P)"><i class="fa-solid fa-pencil"></i></button>
+      <button class="quick-btn" data-action="neon" title="Neon Glow (G)"><i class="fa-solid fa-bolt-lightning"></i></button>
+      <button class="quick-btn" data-action="eraser" title="Eraser (E)"><i class="fa-solid fa-eraser"></i></button>
+      <button class="quick-btn" data-action="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+      <button class="quick-btn" data-action="redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-arrow-rotate-right"></i></button>
+    </div>
+
+    <div class="bar-separator"></div>
+
+    <!-- Quick Color Selector + Any Custom Color Wheel Button -->
+    <div class="quick-colors">
+      <div class="bottom-custom-color-wrap" title="Pick Any Custom Color">
+        <input type="color" id="bottomColorPicker" value="#6366f1">
+        <label for="bottomColorPicker" class="color-wheel-btn" id="bottomColorWheelBtn" title="Choose ANY Custom Color">
+          <i class="fa-solid fa-palette"></i>
+        </label>
+      </div>
+
+      <span class="quick-dot active" style="background:#6366f1" data-color="#6366f1" title="Indigo"></span>
+      <span class="quick-dot" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></span>
+      <span class="quick-dot" style="background:#10b981" data-color="#10b981" title="Green"></span>
+      <span class="quick-dot" style="background:#eab308" data-color="#eab308" title="Yellow"></span>
+      <span class="quick-dot" style="background:#ef4444" data-color="#ef4444" title="Red"></span>
+      <span class="quick-dot" style="background:#ec4899" data-color="#ec4899" title="Pink"></span>
+      <span class="quick-dot" style="background:#ffffff" data-color="#ffffff" title="White"></span>
+      <span class="quick-dot" style="background:#000000" data-color="#000000" title="Black"></span>
+    </div>
+  </div>
+
+  <!-- Text Input Modal -->
+  <div class="modal-overlay hidden" id="textInputModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Text on Canvas</h3>
+        <button id="modalCloseBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="canvasTextInput" placeholder="Type your text here..." autofocus>
+        <div class="modal-row">
+          <label>Font Size:
+            <select id="modalFontSize">
+              <option value="20">Small (20px)</option>
+              <option value="32" selected>Medium (32px)</option>
+              <option value="48">Large (48px)</option>
+              <option value="72">Extra Large (72px)</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelTextBtn" class="btn secondary-btn">Cancel</button>
+        <button id="confirmTextBtn" class="btn primary-btn">Insert Text</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast-popup"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
