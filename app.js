@@ -1,7 +1,6 @@
 /**
- * CanvasCraft Studio — Pro Drawing & Canvas Engine
- * Modern, High-Performance Canvas Application in Pure JavaScript
- * 100% Fullscreen Edge-to-Edge Responsive Canvas
+ * The Craft XP — Pro Digital Drawing & Design Studio
+ * Interactive Object & Freehand Canvas Engine with Select & Move Tool
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -14,13 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const paintCanvas = document.getElementById('paintCanvas');
   const previewCanvas = document.getElementById('previewCanvas');
   const cursorCanvas = document.getElementById('cursorCanvas');
+  const inlineTextInput = document.getElementById('inlineCanvasTextInput');
 
   const gridCtx = gridCanvas.getContext('2d');
   const paintCtx = paintCanvas.getContext('2d', { willReadFrequently: true });
   const previewCtx = previewCanvas.getContext('2d');
   const cursorCtx = cursorCanvas.getContext('2d');
 
-  // Sidebar Elements & Collapsers
+  // Sidebar Elements
   const toolDock = document.getElementById('toolDock');
   const propertiesPanel = document.getElementById('propertiesPanel');
   const toggleLeftDockBtn = document.getElementById('toggleLeftDockBtn');
@@ -71,21 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Floating Quick Bar
   const quickBtns = document.querySelectorAll('.quick-btn');
   const quickDots = document.querySelectorAll('.quick-dot');
-
-  // Modal & Toast
-  const textInputModal = document.getElementById('textInputModal');
-  const canvasTextInput = document.getElementById('canvasTextInput');
-  const modalFontSize = document.getElementById('modalFontSize');
-  const confirmTextBtn = document.getElementById('confirmTextBtn');
-  const cancelTextBtn = document.getElementById('cancelTextBtn');
-  const modalCloseBtn = document.getElementById('modalCloseBtn');
   const toast = document.getElementById('toast');
 
   // ==========================================
-  // 2. Application State
+  // 2. Application State & Elements Store
   // ==========================================
   const state = {
-    tool: 'brush',
+    tool: 'select', // select, brush, pencil, neon, rainbow, spray, highlighter, eraser, line, arrow, rectangle, circle, star, heart, fill, pipette, text, stamp
     color: '#6366f1',
     size: 8,
     opacity: 1.0,
@@ -94,21 +86,34 @@ document.addEventListener('DOMContentLoaded', () => {
     isDrawing: false,
     startX: 0,
     startY: 0,
+    lastX: 0,
+    lastY: 0,
     points: [],
     rainbowHue: 0,
     showGrid: false,
     symmetryMode: false,
     zoom: 1.0,
     canvasBg: '#0f1117',
-    textPendingCoords: null,
-    history: [],
-    historyIndex: -1,
-    maxHistory: 30,
-    leftDockCollapsed: false,
-    rightPanelCollapsed: false,
     canvasWidth: 0,
     canvasHeight: 0,
+    leftDockCollapsed: false,
+    rightPanelCollapsed: false,
+
+    // Selection & Transform State
+    selectedElement: null,
+    isDraggingElement: false,
+    isResizingElement: false,
+    resizeHandle: null, // 'nw', 'ne', 'se', 'sw'
+    dragOffset: { x: 0, y: 0 },
+
+    // Elements & History
+    elements: [],
+    history: [],
+    historyIndex: -1,
+    maxHistory: 35,
   };
+
+  let activeTextPos = null;
 
   // ==========================================
   // 3. Dynamic Fullscreen Canvas Resize
@@ -119,12 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (state.canvasWidth === width && state.canvasHeight === height) return;
 
-    // Save previous drawing if exists
-    let previousImage = null;
-    if (state.canvasWidth > 0 && state.canvasHeight > 0) {
-      previousImage = paintCtx.getImageData(0, 0, state.canvasWidth, state.canvasHeight);
-    }
-
     state.canvasWidth = width;
     state.canvasHeight = height;
 
@@ -133,26 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
       canvas.height = height;
     });
 
-    if (previousImage) {
-      fillCanvasBackground(state.canvasBg);
-      paintCtx.putImageData(previousImage, 0, 0);
-    } else {
-      fillCanvasBackground(state.canvasBg);
-      saveState();
-    }
-
     drawGrid();
-  }
-
-  function fillCanvasBackground(bgColor) {
-    if (bgColor === 'transparent') {
-      paintCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
-      paintCanvas.style.backgroundColor = 'transparent';
-    } else {
-      paintCtx.fillStyle = bgColor;
-      paintCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-      paintCanvas.style.backgroundColor = bgColor;
-    }
+    renderAll();
   }
 
   // ==========================================
@@ -184,15 +165,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 5. History (Undo / Redo) Stack
+  // 5. History (Undo / Redo) Management
   // ==========================================
   function saveState() {
     if (state.historyIndex < state.history.length - 1) {
       state.history = state.history.slice(0, state.historyIndex + 1);
     }
 
-    const imageData = paintCtx.getImageData(0, 0, state.canvasWidth, state.canvasHeight);
-    state.history.push(imageData);
+    // Deep clone elements array
+    const snapshot = JSON.stringify(state.elements);
+    state.history.push(snapshot);
 
     if (state.history.length > state.maxHistory) {
       state.history.shift();
@@ -207,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.historyIndex > 0) {
       state.historyIndex--;
       const snapshot = state.history[state.historyIndex];
-      paintCtx.putImageData(snapshot, 0, 0);
+      state.elements = JSON.parse(snapshot);
+      state.selectedElement = null;
+      renderAll();
       updateHistoryButtons();
       showToast('Undo');
     }
@@ -217,7 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.historyIndex < state.history.length - 1) {
       state.historyIndex++;
       const snapshot = state.history[state.historyIndex];
-      paintCtx.putImageData(snapshot, 0, 0);
+      state.elements = JSON.parse(snapshot);
+      state.selectedElement = null;
+      renderAll();
       updateHistoryButtons();
       showToast('Redo');
     }
@@ -229,301 +215,196 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 6. 1:1 Pixel Coordinates Calculation
+  // 6. Master Render Loop
   // ==========================================
-  function getCoordinates(e) {
-    const rect = paintCanvas.getBoundingClientRect();
-    let clientX = e.clientX;
-    let clientY = e.clientY;
-
-    if (e.touches && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    }
-
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
-    };
-  }
-
-  // ==========================================
-  // 7. Drawing Event Handlers
-  // ==========================================
-  function startDrawing(e) {
-    if (e.button !== 0 && e.type !== 'touchstart') return;
-    e.preventDefault();
-
-    const { x, y } = getCoordinates(e);
-    state.startX = x;
-    state.startY = y;
-    state.points = [{ x, y }];
-
-    if (state.tool === 'fill') {
-      floodFill(Math.round(x), Math.round(y), state.color);
-      saveState();
-      return;
-    }
-
-    if (state.tool === 'pipette') {
-      pickColorAt(Math.round(x), Math.round(y));
-      return;
-    }
-
-    if (state.tool === 'text') {
-      openInlineTextInput(x, y);
-      return;
-    }
-
-    if (state.tool === 'stamp') {
-      drawStamp(paintCtx, state.selectedStamp, x, y, state.size * 3.5);
-      if (state.symmetryMode) {
-        drawStamp(paintCtx, state.selectedStamp, state.canvasWidth - x, y, state.size * 3.5);
-      }
-      saveState();
-      return;
-    }
-
-    state.isDrawing = true;
-
-    if (state.tool === 'spray') {
-      drawSpray(paintCtx, x, y);
-      if (state.symmetryMode) drawSpray(paintCtx, state.canvasWidth - x, y);
-    } else if (isFreehandTool(state.tool)) {
-      paintCtx.save();
-      configureBrushContext(paintCtx);
-      paintCtx.beginPath();
-      paintCtx.arc(x, y, (state.tool === 'pencil' ? 1.5 : state.size) / 2, 0, Math.PI * 2);
-      paintCtx.fill();
-
-      if (state.symmetryMode) {
-        paintCtx.beginPath();
-        paintCtx.arc(state.canvasWidth - x, y, (state.tool === 'pencil' ? 1.5 : state.size) / 2, 0, Math.PI * 2);
-        paintCtx.fill();
-      }
-      paintCtx.restore();
-    }
-  }
-
-  function draw(e) {
-    const { x, y } = getCoordinates(e);
-    drawCustomCursor(x, y);
-
-    if (!state.isDrawing) return;
-    e.preventDefault();
-
-    if (state.tool === 'spray') {
-      drawSpray(paintCtx, x, y);
-      if (state.symmetryMode) drawSpray(paintCtx, state.canvasWidth - x, y);
-    } else if (isFreehandTool(state.tool)) {
-      state.points.push({ x, y });
-      drawSmoothStroke(paintCtx, state.points);
-
-      if (state.symmetryMode) {
-        const mirroredPoints = state.points.map(p => ({
-          x: state.canvasWidth - p.x,
-          y: p.y
-        }));
-        drawSmoothStroke(paintCtx, mirroredPoints);
-      }
+  function renderAll() {
+    // 1. Render Background
+    if (state.canvasBg === 'transparent') {
+      paintCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+      paintCanvas.style.backgroundColor = 'transparent';
     } else {
-      previewCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
-      drawShape(previewCtx, state.tool, state.startX, state.startY, x, y, state.fillShape);
+      paintCtx.fillStyle = state.canvasBg;
+      paintCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+      paintCanvas.style.backgroundColor = state.canvasBg;
+    }
 
-      if (state.symmetryMode) {
-        drawShape(
-          previewCtx,
-          state.tool,
-          state.canvasWidth - state.startX,
-          state.startY,
-          state.canvasWidth - x,
-          y,
-          state.fillShape
-        );
-      }
+    // 2. Render all Elements
+    state.elements.forEach(el => {
+      renderElement(paintCtx, el);
+    });
+
+    // 3. Render Selection Bounding Box & Handles on previewCanvas
+    previewCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+    if (state.tool === 'select' && state.selectedElement) {
+      drawSelectionBox(previewCtx, state.selectedElement);
     }
   }
 
-  function stopDrawing(e) {
-    if (!state.isDrawing) return;
-    state.isDrawing = false;
+  function renderElement(ctx, el) {
+    ctx.save();
+    ctx.globalAlpha = el.opacity ?? 1.0;
 
-    if (!isFreehandTool(state.tool) && state.tool !== 'spray' && state.tool !== 'fill' && state.tool !== 'pipette' && state.tool !== 'text' && state.tool !== 'stamp') {
-      const { x, y } = getCoordinates(e.changedTouches ? e.changedTouches[0] : e);
-      drawShape(paintCtx, state.tool, state.startX, state.startY, x, y, state.fillShape);
-      if (state.symmetryMode) {
-        drawShape(
-          paintCtx,
-          state.tool,
-          state.canvasWidth - state.startX,
-          state.startY,
-          state.canvasWidth - x,
-          y,
-          state.fillShape
-        );
-      }
-      previewCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+    switch (el.type) {
+      case 'stroke':
+        renderStroke(ctx, el);
+        break;
+
+      case 'spray':
+        renderSpray(ctx, el);
+        break;
+
+      case 'shape':
+        renderShapeElement(ctx, el);
+        break;
+
+      case 'text':
+        renderTextElement(ctx, el);
+        break;
+
+      case 'stamp':
+        renderStampElement(ctx, el);
+        break;
+
+      case 'image':
+        renderImageElement(ctx, el);
+        break;
     }
 
-    state.points = [];
-    saveState();
-  }
-
-  function isFreehandTool(tool) {
-    return ['brush', 'pencil', 'neon', 'rainbow', 'highlighter', 'eraser'].includes(tool);
+    ctx.restore();
   }
 
   // ==========================================
-  // 8. Brush Context & Stroke Styling
+  // 7. Element Renderers
   // ==========================================
-  function configureBrushContext(ctx, overrideColor = null) {
+  function renderStroke(ctx, el) {
+    if (!el.points || el.points.length < 2) return;
+
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = state.tool === 'pencil' ? 1.5 : state.size;
+    ctx.lineWidth = el.tool === 'pencil' ? 1.5 : el.size;
 
-    if (state.tool === 'eraser') {
+    if (el.tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
-      ctx.fillStyle = 'rgba(0,0,0,1)';
-      return;
-    }
-
-    ctx.globalCompositeOperation = 'source-over';
-
-    if (state.tool === 'highlighter') {
+    } else if (el.tool === 'highlighter') {
+      ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 0.25;
-      ctx.strokeStyle = overrideColor || state.color;
-      ctx.fillStyle = overrideColor || state.color;
+      ctx.strokeStyle = el.color;
       ctx.lineCap = 'square';
-      return;
-    }
-
-    ctx.globalAlpha = state.opacity;
-
-    if (state.tool === 'neon') {
-      ctx.strokeStyle = overrideColor || state.color;
-      ctx.shadowBlur = state.size * 2;
-      ctx.shadowColor = overrideColor || state.color;
-    } else if (state.tool === 'rainbow') {
-      state.rainbowHue = (state.rainbowHue + 2) % 360;
-      const rainbowCol = `hsl(${state.rainbowHue}, 100%, 55%)`;
-      ctx.strokeStyle = rainbowCol;
-      ctx.shadowBlur = 0;
+    } else if (el.tool === 'neon') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = el.color;
+      ctx.shadowBlur = el.size * 2;
+      ctx.shadowColor = el.color;
     } else {
-      ctx.strokeStyle = overrideColor || state.color;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = el.color;
       ctx.shadowBlur = 0;
     }
-
-    ctx.fillStyle = ctx.strokeStyle;
-  }
-
-  function drawSmoothStroke(ctx, pts) {
-    if (pts.length < 2) return;
-
-    ctx.save();
-    configureBrushContext(ctx);
 
     ctx.beginPath();
-    const len = pts.length;
-    const p1 = pts[len - 2];
-    const p2 = pts[len - 1];
+    const pts = el.points;
+    ctx.moveTo(pts[0].x, pts[0].y);
 
-    if (len === 2) {
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-    } else {
-      const p0 = pts[len - 3];
-      const mid1X = (p0.x + p1.x) / 2;
-      const mid1Y = (p0.y + p1.y) / 2;
-      const mid2X = (p1.x + p2.x) / 2;
-      const mid2Y = (p1.y + p2.y) / 2;
-
-      ctx.moveTo(mid1X, mid1Y);
-      ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+    for (let i = 1; i < pts.length; i++) {
+      const p0 = pts[i - 1];
+      const p1 = pts[i];
+      const midX = (p0.x + p1.x) / 2;
+      const midY = (p0.y + p1.y) / 2;
+      ctx.quadraticCurveTo(p0.x, p0.y, midX, midY);
     }
-
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
     ctx.stroke();
-    ctx.restore();
   }
 
-  function drawSpray(ctx, x, y) {
-    ctx.save();
-    ctx.fillStyle = state.color;
-    ctx.globalAlpha = state.opacity * 0.4;
-    const density = Math.max(15, state.size * 2);
-    const radius = state.size * 1.5;
-
-    for (let i = 0; i < density; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const r = Math.random() * radius;
-      const dotX = x + Math.cos(angle) * r;
-      const dotY = y + Math.sin(angle) * r;
-      ctx.fillRect(dotX, dotY, 1.5, 1.5);
-    }
-    ctx.restore();
+  function renderSpray(ctx, el) {
+    ctx.fillStyle = el.color;
+    ctx.globalAlpha = el.opacity * 0.4;
+    el.dots.forEach(d => {
+      ctx.fillRect(d.x, d.y, 1.5, 1.5);
+    });
   }
 
-  // ==========================================
-  // 9. Shape Engine
-  // ==========================================
-  function drawShape(ctx, shape, x1, y1, x2, y2, filled) {
-    ctx.save();
+  function renderShapeElement(ctx, el) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = state.size;
-    ctx.globalAlpha = state.opacity;
-    ctx.strokeStyle = state.color;
-    ctx.fillStyle = state.color;
+    ctx.lineWidth = el.strokeWidth || 4;
+    ctx.strokeStyle = el.color;
+    ctx.fillStyle = el.color;
 
     ctx.beginPath();
+    const x = el.x;
+    const y = el.y;
+    const w = el.width;
+    const h = el.height;
 
-    switch (shape) {
+    switch (el.shapeType) {
+      case 'rectangle':
+        if (el.fill) ctx.fillRect(x, y, w, h);
+        else ctx.strokeRect(x, y, w, h);
+        break;
+
+      case 'circle':
+        ctx.ellipse(x + w / 2, y + h / 2, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
+        if (el.fill) ctx.fill();
+        else ctx.stroke();
+        break;
+
       case 'line':
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w, y + h);
         ctx.stroke();
         break;
 
       case 'arrow':
-        drawArrow(ctx, x1, y1, x2, y2);
+        drawArrow(ctx, x, y, x + w, y + h, el.strokeWidth);
         break;
-
-      case 'rectangle': {
-        const x = Math.min(x1, x2);
-        const y = Math.min(y1, y2);
-        const w = Math.abs(x2 - x1);
-        const h = Math.abs(y2 - y1);
-        if (filled) ctx.fillRect(x, y, w, h);
-        else ctx.strokeRect(x, y, w, h);
-        break;
-      }
-
-      case 'circle': {
-        const radiusX = Math.abs(x2 - x1) / 2;
-        const radiusY = Math.abs(y2 - y1) / 2;
-        const centerX = Math.min(x1, x2) + radiusX;
-        const centerY = Math.min(y1, y2) + radiusY;
-        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
-        if (filled) ctx.fill();
-        else ctx.stroke();
-        break;
-      }
-
-      case 'heart': {
-        drawHeart(ctx, (x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1), Math.abs(y2 - y1), filled);
-        break;
-      }
 
       case 'star':
-        drawStar(ctx, (x1 + x2) / 2, (y1 + y2) / 2, 5, Math.abs(x2 - x1) / 2, Math.abs(x2 - x1) / 4, filled);
+        drawStar(ctx, x + w / 2, y + h / 2, 5, Math.abs(w / 2), Math.abs(w / 4), el.fill);
+        break;
+
+      case 'heart':
+        drawHeart(ctx, x + w / 2, y + h / 2, Math.abs(w), Math.abs(h), el.fill);
         break;
     }
-
-    ctx.restore();
   }
 
-  function drawArrow(ctx, fromX, fromY, toX, toY) {
-    const headLen = Math.max(16, state.size * 2);
+  function renderTextElement(ctx, el) {
+    ctx.font = `600 ${el.fontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
+    ctx.fillStyle = el.color;
+    ctx.textBaseline = 'top';
+
+    const lines = el.text.split('\n');
+    const lineHeight = el.fontSize * 1.25;
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, el.x, el.y + index * lineHeight);
+    });
+  }
+
+  function renderStampElement(ctx, el) {
+    ctx.font = `${el.size}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(el.emoji, el.x + el.width / 2, el.y + el.height / 2);
+  }
+
+  function renderImageElement(ctx, el) {
+    if (!el._imgObj) {
+      const img = new Image();
+      img.onload = () => {
+        el._imgObj = img;
+        renderAll();
+      };
+      img.src = el.src;
+    } else {
+      ctx.drawImage(el._imgObj, el.x, el.y, el.width, el.height);
+    }
+  }
+
+  function drawArrow(ctx, fromX, fromY, toX, toY, strokeWidth = 4) {
+    const headLen = Math.max(16, strokeWidth * 2.5);
     const angle = Math.atan2(toY - fromY, toX - fromX);
 
     ctx.moveTo(fromX, fromY);
@@ -577,23 +458,484 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 10. Stamp & Text Helpers
+  // 8. Selection Bounding Box & Handles
   // ==========================================
-  function drawStamp(ctx, emoji, x, y, size) {
+  function getElementBounds(el) {
+    if (el.type === 'stroke') {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      el.points.forEach(p => {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+      });
+      const padding = el.size / 2;
+      return { x: minX - padding, y: minY - padding, width: (maxX - minX) + padding * 2, height: (maxY - minY) + padding * 2 };
+    }
+
+    let x = el.x;
+    let y = el.y;
+    let w = el.width || 0;
+    let h = el.height || 0;
+
+    if (w < 0) { x += w; w = Math.abs(w); }
+    if (h < 0) { y += h; h = Math.abs(h); }
+
+    return { x, y, width: Math.max(w, 20), height: Math.max(h, 20) };
+  }
+
+  function drawSelectionBox(ctx, el) {
+    const bounds = getElementBounds(el);
+    const p = 6; // padding
+    const x = bounds.x - p;
+    const y = bounds.y - p;
+    const w = bounds.width + p * 2;
+    const h = bounds.height + p * 2;
+
     ctx.save();
-    ctx.font = `${size}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(emoji, x, y);
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+
+    // Corner Handles
+    const handleSize = 8;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 2;
+
+    const handles = [
+      { x: x, y: y, id: 'nw' },
+      { x: x + w, y: y, id: 'ne' },
+      { x: x + w, y: y + h, id: 'se' },
+      { x: x, y: y + h, id: 'sw' }
+    ];
+
+    handles.forEach(h => {
+      ctx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+      ctx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+    });
+
     ctx.restore();
   }
 
-  // Inline Text Editor Element
-  const inlineTextInput = document.getElementById('inlineCanvasTextInput');
-  let activeTextPos = null;
+  function hitTestElement(el, px, py) {
+    const b = getElementBounds(el);
+    const p = 8;
+    return (
+      px >= b.x - p &&
+      px <= b.x + b.width + p &&
+      py >= b.y - p &&
+      py <= b.y + b.height + p
+    );
+  }
 
-  function openInlineTextInput(x, y) {
-    commitInlineText(); // Commit any existing open text
+  function getHandleUnderCursor(el, px, py) {
+    if (!el) return null;
+    const bounds = getElementBounds(el);
+    const p = 6;
+    const x = bounds.x - p;
+    const y = bounds.y - p;
+    const w = bounds.width + p * 2;
+    const h = bounds.height + p * 2;
+    const handleRadius = 10;
+
+    const handles = [
+      { x: x, y: y, id: 'nw' },
+      { x: x + w, y: y, id: 'ne' },
+      { x: x + w, y: y + h, id: 'se' },
+      { x: x, y: y + h, id: 'sw' }
+    ];
+
+    for (let handle of handles) {
+      if (Math.hypot(px - handle.x, py - handle.y) <= handleRadius) {
+        return handle.id;
+      }
+    }
+    return null;
+  }
+
+  // ==========================================
+  // 9. Coordinates & Pointer Calculations
+  // ==========================================
+  function getCoordinates(e) {
+    const rect = paintCanvas.getBoundingClientRect();
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    }
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  }
+
+  // ==========================================
+  // 10. Pointer & Mouse Event Handlers
+  // ==========================================
+  function handlePointerDown(e) {
+    if (e.button !== 0 && e.type !== 'touchstart') return;
+    const { x, y } = getCoordinates(e);
+
+    state.startX = x;
+    state.startY = y;
+    state.lastX = x;
+    state.lastY = y;
+
+    // --- SELECT & MOVE TOOL ---
+    if (state.tool === 'select') {
+      // Check if clicking a resize handle on selected element
+      if (state.selectedElement) {
+        const handle = getHandleUnderCursor(state.selectedElement, x, y);
+        if (handle) {
+          state.isResizingElement = true;
+          state.resizeHandle = handle;
+          return;
+        }
+      }
+
+      // Check if clicking on an element (from topmost to bottommost)
+      let found = null;
+      for (let i = state.elements.length - 1; i >= 0; i--) {
+        if (hitTestElement(state.elements[i], x, y)) {
+          found = state.elements[i];
+          break;
+        }
+      }
+
+      state.selectedElement = found;
+
+      if (found) {
+        state.isDraggingElement = true;
+        state.dragOffset = { x: x - found.x, y: y - found.y };
+        setColor(found.color || state.color);
+        if (found.fontSize) setBrushSize(found.fontSize / 2.5);
+        showToast(`Selected: ${found.type.toUpperCase()}`);
+      }
+
+      renderAll();
+      return;
+    }
+
+    // --- INLINE TEXT TOOL ---
+    if (state.tool === 'text') {
+      openInlineTextInput(x, y);
+      return;
+    }
+
+    // --- COLOR PIPETTE TOOL ---
+    if (state.tool === 'pipette') {
+      pickColorAt(Math.round(x), Math.round(y));
+      return;
+    }
+
+    // --- COLOR BUCKET FILL ---
+    if (state.tool === 'fill') {
+      floodFill(Math.round(x), Math.round(y), state.color);
+      saveState();
+      return;
+    }
+
+    // --- EMOJI STAMP TOOL ---
+    if (state.tool === 'stamp') {
+      const stampSize = state.size * 3.5;
+      const stampEl = {
+        id: Date.now(),
+        type: 'stamp',
+        emoji: state.selectedStamp,
+        x: x - stampSize / 2,
+        y: y - stampSize / 2,
+        width: stampSize,
+        height: stampSize,
+        size: stampSize,
+        opacity: state.opacity,
+      };
+      state.elements.push(stampEl);
+
+      if (state.symmetryMode) {
+        state.elements.push({
+          ...stampEl,
+          id: Date.now() + 1,
+          x: state.canvasWidth - x - stampSize / 2,
+        });
+      }
+
+      renderAll();
+      saveState();
+      return;
+    }
+
+    // --- FREEHAND BRUSH & SHAPES DRAWING ---
+    state.isDrawing = true;
+    state.points = [{ x, y }];
+
+    if (state.tool === 'spray') {
+      const sprayEl = {
+        id: Date.now(),
+        type: 'spray',
+        color: state.color,
+        opacity: state.opacity,
+        dots: generateSprayDots(x, y, state.size),
+      };
+      state.elements.push(sprayEl);
+      renderAll();
+    } else if (isFreehandTool(state.tool)) {
+      const strokeEl = {
+        id: Date.now(),
+        type: 'stroke',
+        tool: state.tool,
+        color: state.tool === 'rainbow' ? `hsl(${state.rainbowHue}, 100%, 55%)` : state.color,
+        size: state.tool === 'pencil' ? 1.5 : state.size,
+        opacity: state.opacity,
+        points: [{ x, y }],
+      };
+      state.elements.push(strokeEl);
+      renderAll();
+    }
+  }
+
+  function handlePointerMove(e) {
+    const { x, y } = getCoordinates(e);
+    drawCustomCursor(x, y);
+
+    // --- SELECT TOOL: DRAG OR RESIZE ---
+    if (state.tool === 'select') {
+      if (state.isResizingElement && state.selectedElement) {
+        const el = state.selectedElement;
+        const dx = x - state.lastX;
+        const dy = y - state.lastY;
+
+        if (state.resizeHandle === 'se') {
+          el.width = Math.max(15, (el.width || 50) + dx);
+          el.height = Math.max(15, (el.height || 50) + dy);
+        } else if (state.resizeHandle === 'sw') {
+          el.x += dx;
+          el.width = Math.max(15, (el.width || 50) - dx);
+          el.height = Math.max(15, (el.height || 50) + dy);
+        } else if (state.resizeHandle === 'ne') {
+          el.y += dy;
+          el.width = Math.max(15, (el.width || 50) + dx);
+          el.height = Math.max(15, (el.height || 50) - dy);
+        } else if (state.resizeHandle === 'nw') {
+          el.x += dx;
+          el.y += dy;
+          el.width = Math.max(15, (el.width || 50) - dx);
+          el.height = Math.max(15, (el.height || 50) - dy);
+        }
+
+        state.lastX = x;
+        state.lastY = y;
+        renderAll();
+        return;
+      }
+
+      if (state.isDraggingElement && state.selectedElement) {
+        const el = state.selectedElement;
+        const dx = x - state.lastX;
+        const dy = y - state.lastY;
+
+        if (el.type === 'stroke') {
+          el.points.forEach(p => { p.x += dx; p.y += dy; });
+        } else {
+          el.x += dx;
+          el.y += dy;
+        }
+
+        state.lastX = x;
+        state.lastY = y;
+        renderAll();
+        return;
+      }
+
+      // Cursor styling for hover
+      if (state.selectedElement) {
+        const handle = getHandleUnderCursor(state.selectedElement, x, y);
+        if (handle) {
+          viewport.style.cursor = (handle === 'nw' || handle === 'se') ? 'nwse-resize' : 'nesw-resize';
+          return;
+        }
+      }
+
+      let hoverFound = false;
+      for (let i = state.elements.length - 1; i >= 0; i--) {
+        if (hitTestElement(state.elements[i], x, y)) {
+          viewport.style.cursor = 'move';
+          hoverFound = true;
+          break;
+        }
+      }
+      if (!hoverFound) viewport.style.cursor = 'default';
+      return;
+    }
+
+    if (!state.isDrawing) return;
+    e.preventDefault();
+
+    // --- FREEHAND DRAWING ---
+    if (isFreehandTool(state.tool)) {
+      const currentStroke = state.elements[state.elements.length - 1];
+      if (currentStroke && currentStroke.type === 'stroke') {
+        currentStroke.points.push({ x, y });
+        renderAll();
+      }
+    } else if (state.tool === 'spray') {
+      const currentSpray = state.elements[state.elements.length - 1];
+      if (currentSpray && currentSpray.type === 'spray') {
+        currentSpray.dots.push(...generateSprayDots(x, y, state.size));
+        renderAll();
+      }
+    } else {
+      // Shape Preview on previewCanvas
+      previewCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+      drawShapePreview(previewCtx, state.tool, state.startX, state.startY, x, y, state.fillShape);
+
+      if (state.symmetryMode) {
+        drawShapePreview(
+          previewCtx,
+          state.tool,
+          state.canvasWidth - state.startX,
+          state.startY,
+          state.canvasWidth - x,
+          y,
+          state.fillShape
+        );
+      }
+    }
+  }
+
+  function handlePointerUp(e) {
+    if (state.isDraggingElement || state.isResizingElement) {
+      state.isDraggingElement = false;
+      state.isResizingElement = false;
+      saveState();
+      return;
+    }
+
+    if (!state.isDrawing) return;
+    state.isDrawing = false;
+
+    // --- COMMIT SHAPES AS MOVEABLE OBJECTS ---
+    const isShape = ['rectangle', 'circle', 'line', 'arrow', 'star', 'heart'].includes(state.tool);
+    if (isShape) {
+      const { x, y } = getCoordinates(e.changedTouches ? e.changedTouches[0] : e);
+      const shapeEl = {
+        id: Date.now(),
+        type: 'shape',
+        shapeType: state.tool,
+        x: Math.min(state.startX, x),
+        y: Math.min(state.startY, y),
+        width: state.tool === 'line' || state.tool === 'arrow' ? x - state.startX : Math.abs(x - state.startX),
+        height: state.tool === 'line' || state.tool === 'arrow' ? y - state.startY : Math.abs(y - state.startY),
+        color: state.color,
+        fill: state.fillShape,
+        strokeWidth: state.size,
+        opacity: state.opacity,
+      };
+
+      if (state.tool === 'line' || state.tool === 'arrow') {
+        shapeEl.x = state.startX;
+        shapeEl.y = state.startY;
+      }
+
+      state.elements.push(shapeEl);
+
+      if (state.symmetryMode) {
+        const mirrored = { ...shapeEl, id: Date.now() + 1 };
+        if (state.tool === 'line' || state.tool === 'arrow') {
+          mirrored.x = state.canvasWidth - state.startX;
+          mirrored.width = -shapeEl.width;
+        } else {
+          mirrored.x = state.canvasWidth - shapeEl.x - shapeEl.width;
+        }
+        state.elements.push(mirrored);
+      }
+
+      previewCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+    }
+
+    state.points = [];
+    renderAll();
+    saveState();
+  }
+
+  function isFreehandTool(tool) {
+    return ['brush', 'pencil', 'neon', 'rainbow', 'highlighter', 'eraser'].includes(tool);
+  }
+
+  function generateSprayDots(x, y, size) {
+    const density = Math.max(12, size * 2);
+    const radius = size * 1.5;
+    const dots = [];
+
+    for (let i = 0; i < density; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * radius;
+      dots.push({ x: x + Math.cos(angle) * r, y: y + Math.sin(angle) * r });
+    }
+    return dots;
+  }
+
+  function drawShapePreview(ctx, shape, x1, y1, x2, y2, filled) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = state.size;
+    ctx.globalAlpha = state.opacity;
+    ctx.strokeStyle = state.color;
+    ctx.fillStyle = state.color;
+
+    const w = x2 - x1;
+    const h = y2 - y1;
+
+    switch (shape) {
+      case 'line':
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        break;
+
+      case 'arrow':
+        drawArrow(ctx, x1, y1, x2, y2, state.size);
+        break;
+
+      case 'rectangle': {
+        const minX = Math.min(x1, x2);
+        const minY = Math.min(y1, y2);
+        if (filled) ctx.fillRect(minX, minY, Math.abs(w), Math.abs(h));
+        else ctx.strokeRect(minX, minY, Math.abs(w), Math.abs(h));
+        break;
+      }
+
+      case 'circle': {
+        ctx.beginPath();
+        ctx.ellipse(x1 + w / 2, y1 + h / 2, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
+        if (filled) ctx.fill();
+        else ctx.stroke();
+        break;
+      }
+
+      case 'star':
+        drawStar(ctx, x1 + w / 2, y1 + h / 2, 5, Math.abs(w / 2), Math.abs(w / 4), filled);
+        break;
+
+      case 'heart':
+        drawHeart(ctx, x1 + w / 2, y1 + h / 2, Math.abs(w), Math.abs(h), filled);
+        break;
+    }
+    ctx.restore();
+  }
+
+  // ==========================================
+  // 11. Inline Canvas Typing System
+  // ==========================================
+  function openInlineTextInput(x, y, existingText = '') {
+    commitInlineText();
 
     activeTextPos = { x, y };
     const fontSize = Math.max(18, state.size * 2.5);
@@ -603,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inlineTextInput.style.fontSize = `${fontSize}px`;
     inlineTextInput.style.color = state.color;
     inlineTextInput.style.opacity = state.opacity;
-    inlineTextInput.value = '';
+    inlineTextInput.value = existingText;
     inlineTextInput.classList.remove('hidden');
 
     setTimeout(() => {
@@ -617,27 +959,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = inlineTextInput.value.trim();
     if (text) {
       const fontSize = Math.max(18, state.size * 2.5);
-      const lineHeight = fontSize * 1.25;
       const lines = inlineTextInput.value.split('\n');
+      const lineHeight = fontSize * 1.25;
 
-      paintCtx.save();
+      // Calculate approximate text bounding box
+      let maxLineWidth = 0;
       paintCtx.font = `600 ${fontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
-      paintCtx.fillStyle = state.color;
-      paintCtx.globalAlpha = state.opacity;
-      paintCtx.textBaseline = 'top';
-
-      lines.forEach((line, index) => {
-        const lineY = activeTextPos.y + (index * lineHeight);
-        paintCtx.fillText(line, activeTextPos.x, lineY);
-
-        if (state.symmetryMode) {
-          paintCtx.fillText(line, state.canvasWidth - activeTextPos.x, lineY);
-        }
+      lines.forEach(l => {
+        const m = paintCtx.measureText(l);
+        if (m.width > maxLineWidth) maxLineWidth = m.width;
       });
 
-      paintCtx.restore();
+      const textEl = {
+        id: Date.now(),
+        type: 'text',
+        text: inlineTextInput.value,
+        x: activeTextPos.x,
+        y: activeTextPos.y,
+        width: Math.max(maxLineWidth, 40),
+        height: lines.length * lineHeight,
+        fontSize: fontSize,
+        color: state.color,
+        opacity: state.opacity,
+      };
+
+      state.elements.push(textEl);
+
+      if (state.symmetryMode) {
+        state.elements.push({
+          ...textEl,
+          id: Date.now() + 1,
+          x: state.canvasWidth - activeTextPos.x - textEl.width,
+        });
+      }
+
+      renderAll();
       saveState();
-      showToast('Text added to canvas');
+      showToast('Text element created');
     }
 
     inlineTextInput.classList.add('hidden');
@@ -650,7 +1008,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   inlineTextInput.addEventListener('keydown', (e) => {
-    e.stopPropagation(); // Stop keyboard shortcuts while typing
+    e.stopPropagation();
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       commitInlineText();
@@ -661,21 +1019,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Auto-resize textarea height
   inlineTextInput.addEventListener('input', () => {
     inlineTextInput.style.height = 'auto';
     inlineTextInput.style.height = `${inlineTextInput.scrollHeight}px`;
   });
 
-  // Double click on canvas anywhere to start typing
+  // Double click anywhere to start typing or edit text
   viewport.addEventListener('dblclick', (e) => {
     const { x, y } = getCoordinates(e);
+
+    // If double clicking on a text element, edit it
+    for (let i = state.elements.length - 1; i >= 0; i--) {
+      const el = state.elements[i];
+      if (el.type === 'text' && hitTestElement(el, x, y)) {
+        state.elements.splice(i, 1);
+        renderAll();
+        openInlineTextInput(el.x, el.y, el.text);
+        return;
+      }
+    }
+
     setTool('text');
     openInlineTextInput(x, y);
   });
 
   // ==========================================
-  // 11. Flood Fill
+  // 12. Flood Fill & Eyedropper
   // ==========================================
   function floodFill(startX, startY, fillHex) {
     const imgData = paintCtx.getImageData(0, 0, state.canvasWidth, state.canvasHeight);
@@ -752,10 +1121,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 12. Cursor Preview
+  // 13. Cursor Preview
   // ==========================================
   function drawCustomCursor(x, y) {
     cursorCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+
+    if (state.tool === 'select') return;
 
     if (isFreehandTool(state.tool) || state.tool === 'spray') {
       const sz = state.tool === 'pencil' ? 3 : state.size;
@@ -774,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 13. Sidebar Collapsing & Zen Mode
+  // 14. Sidebar Collapsing & Zen Mode
   // ==========================================
   function toggleLeftDock(forceState = null) {
     state.leftDockCollapsed = forceState !== null ? forceState : !state.leftDockCollapsed;
@@ -811,10 +1182,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 14. UI State Updates
+  // 15. UI State Updates
   // ==========================================
   function setTool(toolName) {
     state.tool = toolName;
+    if (toolName !== 'select') {
+      state.selectedElement = null;
+      renderAll();
+    }
+
     toolButtons.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tool === toolName);
     });
@@ -827,11 +1203,13 @@ document.addEventListener('DOMContentLoaded', () => {
     shapeConfig.classList.toggle('hidden', !isShape);
     stampConfig.classList.toggle('hidden', toolName !== 'stamp');
 
+    viewport.style.cursor = toolName === 'select' ? 'default' : 'crosshair';
     showToast(`Tool: ${getToolLabel(toolName)}`);
   }
 
   function getToolLabel(t) {
     const labels = {
+      select: 'Select & Move',
       brush: 'Smooth Brush',
       pencil: 'Fine Pencil',
       neon: 'Neon Glow',
@@ -868,6 +1246,12 @@ document.addEventListener('DOMContentLoaded', () => {
     quickDots.forEach(dot => {
       dot.classList.toggle('active', dot.dataset.color.toLowerCase() === hex.toLowerCase());
     });
+
+    // Update selected element color live
+    if (state.selectedElement) {
+      state.selectedElement.color = hex;
+      renderAll();
+    }
   }
 
   function setBrushSize(size) {
@@ -880,6 +1264,16 @@ document.addEventListener('DOMContentLoaded', () => {
     pillButtons.forEach(pill => {
       pill.classList.toggle('active', parseInt(pill.dataset.size, 10) === state.size);
     });
+
+    // Update selected element size live
+    if (state.selectedElement) {
+      if (state.selectedElement.fontSize) {
+        state.selectedElement.fontSize = Math.max(16, state.size * 2.5);
+      } else if (state.selectedElement.strokeWidth) {
+        state.selectedElement.strokeWidth = state.size;
+      }
+      renderAll();
+    }
   }
 
   function setOpacity(val) {
@@ -887,12 +1281,18 @@ document.addEventListener('DOMContentLoaded', () => {
     brushOpacitySlider.value = val;
     opacityBadge.textContent = `${val}%`;
     brushDotPreview.style.opacity = state.opacity;
+
+    if (state.selectedElement) {
+      state.selectedElement.opacity = state.opacity;
+      renderAll();
+    }
   }
 
   function updateUI() {
     setColor(state.color);
     setBrushSize(state.size);
     setOpacity(state.opacity * 100);
+    setTool(state.tool);
   }
 
   function showToast(msg) {
@@ -903,17 +1303,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 15. Event Listeners
+  // 16. Event Listeners
   // ==========================================
   window.addEventListener('resize', resizeCanvases);
 
-  viewport.addEventListener('mousedown', startDrawing);
-  window.addEventListener('mousemove', draw);
-  window.addEventListener('mouseup', stopDrawing);
+  viewport.addEventListener('mousedown', handlePointerDown);
+  window.addEventListener('mousemove', handlePointerMove);
+  window.addEventListener('mouseup', handlePointerUp);
 
-  viewport.addEventListener('touchstart', startDrawing, { passive: false });
-  window.addEventListener('touchmove', draw, { passive: false });
-  window.addEventListener('touchend', stopDrawing, { passive: false });
+  viewport.addEventListener('touchstart', handlePointerDown, { passive: false });
+  window.addEventListener('touchmove', handlePointerMove, { passive: false });
+  window.addEventListener('touchend', handlePointerUp, { passive: false });
 
   // Sidebar Toggles
   toggleLeftDockBtn.addEventListener('click', () => toggleLeftDock());
@@ -955,6 +1355,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   shapeFillCheck.addEventListener('change', e => {
     state.fillShape = e.target.checked;
+    if (state.selectedElement && state.selectedElement.type === 'shape') {
+      state.selectedElement.fill = state.fillShape;
+      renderAll();
+    }
   });
 
   // History Actions
@@ -962,8 +1366,10 @@ document.addEventListener('DOMContentLoaded', () => {
   redoBtn.addEventListener('click', redo);
 
   clearBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear the canvas?')) {
-      fillCanvasBackground(state.canvasBg);
+    if (confirm('Are you sure you want to clear the entire canvas?')) {
+      state.elements = [];
+      state.selectedElement = null;
+      renderAll();
       saveState();
       showToast('Canvas Cleared');
     }
@@ -971,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   bgPreset.addEventListener('change', e => {
     state.canvasBg = e.target.value;
-    fillCanvasBackground(state.canvasBg);
+    renderAll();
     saveState();
     showToast('Background updated');
   });
@@ -1011,9 +1417,9 @@ document.addEventListener('DOMContentLoaded', () => {
   quickBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const act = btn.dataset.action;
-      if (act === 'brush') setTool('brush');
+      if (act === 'select') setTool('select');
+      else if (act === 'brush') setTool('brush');
       else if (act === 'pencil') setTool('pencil');
-      else if (act === 'neon') setTool('neon');
       else if (act === 'eraser') setTool('eraser');
       else if (act === 'undo') undo();
       else if (act === 'redo') redo();
@@ -1083,22 +1489,37 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const ratio = Math.min((state.canvasWidth * 0.8) / img.width, (state.canvasHeight * 0.8) / img.height, 1);
+        const ratio = Math.min((state.canvasWidth * 0.5) / img.width, (state.canvasHeight * 0.5) / img.height, 1);
         const w = img.width * ratio;
         const h = img.height * ratio;
         const x = (state.canvasWidth - w) / 2;
         const y = (state.canvasHeight - h) / 2;
 
-        paintCtx.drawImage(img, x, y, w, h);
+        const imgEl = {
+          id: Date.now(),
+          type: 'image',
+          src: event.target.result,
+          _imgObj: img,
+          x: x,
+          y: y,
+          width: w,
+          height: h,
+          opacity: 1.0,
+        };
+
+        state.elements.push(imgEl);
+        state.selectedElement = imgEl;
+        setTool('select');
+        renderAll();
         saveState();
-        showToast('Image imported onto canvas');
+        showToast('Image added (Select tool active to move/resize)');
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   }
 
-  // Paste image from clipboard
+  // Paste image directly from clipboard
   window.addEventListener('paste', (e) => {
     const items = (e.clipboardData || e.originalEvent.clipboardData).items;
     for (let item of items) {
@@ -1110,32 +1531,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Text Modal
-  confirmTextBtn.addEventListener('click', () => {
-    const text = canvasTextInput.value.trim();
-    const size = parseInt(modalFontSize.value, 10);
-    commitText(text, size);
-    textInputModal.classList.add('hidden');
-  });
-
-  cancelTextBtn.addEventListener('click', () => {
-    textInputModal.classList.add('hidden');
-    state.textPendingCoords = null;
-  });
-
-  modalCloseBtn.addEventListener('click', () => {
-    textInputModal.classList.add('hidden');
-    state.textPendingCoords = null;
-  });
-
-  canvasTextInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') confirmTextBtn.click();
-    else if (e.key === 'Escape') cancelTextBtn.click();
-  });
-
-  // Keyboard Shortcuts
+  // Keyboard Shortcuts & Delete Key
   window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+    // Delete selected element with Delete or Backspace
+    if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedElement) {
+      e.preventDefault();
+      const idx = state.elements.indexOf(state.selectedElement);
+      if (idx !== -1) {
+        state.elements.splice(idx, 1);
+        state.selectedElement = null;
+        renderAll();
+        saveState();
+        showToast('Element deleted');
+      }
+      return;
+    }
 
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -1158,6 +1570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     switch (e.key.toLowerCase()) {
+      case 'v': setTool('select'); break;
       case 'b': setTool('brush'); break;
       case 'p': setTool('pencil'); break;
       case 'g': setTool('neon'); break;
@@ -1173,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Initialize Fullscreen Canvas
+  // Initialize
   resizeCanvases();
   updateUI();
 });

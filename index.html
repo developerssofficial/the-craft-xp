@@ -159,8 +159,17 @@
       </div>
 
       <div class="tool-group">
+        <span class="group-label">Select</span>
+        <button class="tool-item active" data-tool="select" data-tooltip="Select & Move (V)">
+          <i class="fa-solid fa-arrow-pointer"></i>
+        </button>
+      </div>
+
+      <div class="dock-separator"></div>
+
+      <div class="tool-group">
         <span class="group-label">Draw</span>
-        <button class="tool-item active" data-tool="brush" data-tooltip="Smooth Brush (B)">
+        <button class="tool-item" data-tool="brush" data-tooltip="Smooth Brush (B)">
           <i class="fa-solid fa-paintbrush"></i>
         </button>
         <button class="tool-item" data-tool="pencil" data-tooltip="Fine Pencil (P)">
@@ -360,14 +369,14 @@
           <i class="fa-regular fa-keyboard text-muted"></i>
         </div>
         <div class="shortcut-grid">
+          <div class="shortcut-item"><kbd>V</kbd> <span>Select/Move</span></div>
           <div class="shortcut-item"><kbd>B</kbd> <span>Brush</span></div>
           <div class="shortcut-item"><kbd>E</kbd> <span>Eraser</span></div>
           <div class="shortcut-item"><kbd>G</kbd> <span>Glow</span></div>
           <div class="shortcut-item"><kbd>F</kbd> <span>Fill</span></div>
           <div class="shortcut-item"><kbd>T</kbd> <span>Text</span></div>
+          <div class="shortcut-item"><kbd>Del</kbd> <span>Delete</span></div>
           <div class="shortcut-item"><kbd>Tab</kbd> <span>Zen Mode</span></div>
-          <div class="shortcut-item"><kbd>Ctrl+Z</kbd> <span>Undo</span></div>
-          <div class="shortcut-item"><kbd>[</kbd> <kbd>]</kbd> <span>Size</span></div>
         </div>
       </div>
     </aside>
@@ -376,9 +385,9 @@
   <!-- Bottom Floating Color & Tool Dock (Enhanced with Full Custom Color Picker) -->
   <div class="floating-quick-bar" id="floatingQuickBar">
     <div class="quick-tools">
-      <button class="quick-btn active" data-action="brush" title="Brush (B)"><i class="fa-solid fa-paintbrush"></i></button>
+      <button class="quick-btn active" data-action="select" title="Select & Move (V)"><i class="fa-solid fa-arrow-pointer"></i></button>
+      <button class="quick-btn" data-action="brush" title="Brush (B)"><i class="fa-solid fa-paintbrush"></i></button>
       <button class="quick-btn" data-action="pencil" title="Fine Pencil (P)"><i class="fa-solid fa-pencil"></i></button>
-      <button class="quick-btn" data-action="neon" title="Neon Glow (G)"><i class="fa-solid fa-bolt-lightning"></i></button>
       <button class="quick-btn" data-action="eraser" title="Eraser (E)"><i class="fa-solid fa-eraser"></i></button>
       <button class="quick-btn" data-action="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-arrow-rotate-left"></i></button>
       <button class="quick-btn" data-action="redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-arrow-rotate-right"></i></button>
