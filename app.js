@@ -115,6 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let activeTextPos = null;
 
+  // Offscreen Drawing Layer Canvas for clean eraser compositing
+  const drawingCanvas = document.createElement('canvas');
+  const drawingCtx = drawingCanvas.getContext('2d', { willReadFrequently: true });
+
   // ==========================================
   // 3. Dynamic Fullscreen Canvas Resize
   // ==========================================
@@ -127,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.canvasWidth = width;
     state.canvasHeight = height;
 
-    [gridCanvas, paintCanvas, previewCanvas, cursorCanvas].forEach(canvas => {
+    [gridCanvas, paintCanvas, previewCanvas, cursorCanvas, drawingCanvas].forEach(canvas => {
       canvas.width = width;
       canvas.height = height;
     });
@@ -172,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
       state.history = state.history.slice(0, state.historyIndex + 1);
     }
 
-    // Deep clone elements array
     const snapshot = JSON.stringify(state.elements);
     state.history.push(snapshot);
 
@@ -215,10 +218,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 6. Master Render Loop
+  // 6. Master Render Loop (Clean Layering)
   // ==========================================
   function renderAll() {
-    // 1. Render Background
+    // 1. Clear offscreen drawing canvas and render all user elements
+    drawingCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+    state.elements.forEach(el => {
+      renderElement(drawingCtx, el);
+    });
+
+    // 2. Render Background on paintCanvas
     if (state.canvasBg === 'transparent') {
       paintCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
       paintCanvas.style.backgroundColor = 'transparent';
@@ -228,12 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
       paintCanvas.style.backgroundColor = state.canvasBg;
     }
 
-    // 2. Render all Elements
-    state.elements.forEach(el => {
-      renderElement(paintCtx, el);
-    });
+    // 3. Composite Drawing Layer on top of Background
+    paintCtx.drawImage(drawingCanvas, 0, 0);
 
-    // 3. Render Selection Bounding Box & Handles on previewCanvas
+    // 4. Render Selection Bounding Box & Handles on previewCanvas
     previewCtx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
     if (state.tool === 'select' && state.selectedElement) {
       drawSelectionBox(previewCtx, state.selectedElement);
@@ -1466,32 +1473,55 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   savePngBtn.addEventListener('click', () => {
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = state.canvasWidth;
+    exportCanvas.height = state.canvasHeight;
+    const expCtx = exportCanvas.getContext('2d');
+
+    if (state.canvasBg !== 'transparent') {
+      expCtx.fillStyle = state.canvasBg;
+      expCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+    }
+    expCtx.drawImage(drawingCanvas, 0, 0);
+
     const link = document.createElement('a');
     link.download = `TheCraftXP_${Date.now()}.png`;
-    link.href = paintCanvas.toDataURL('image/png');
+    link.href = exportCanvas.toDataURL('image/png');
     link.click();
-    showToast('Downloading PNG...');
+    showToast('PNG Exported successfully');
   });
 
   saveJpgBtn.addEventListener('click', () => {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = state.canvasWidth;
-    tempCanvas.height = state.canvasHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.fillStyle = '#ffffff';
-    tempCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    tempCtx.drawImage(paintCanvas, 0, 0);
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = state.canvasWidth;
+    exportCanvas.height = state.canvasHeight;
+    const expCtx = exportCanvas.getContext('2d');
+
+    expCtx.fillStyle = state.canvasBg === 'transparent' ? '#ffffff' : state.canvasBg;
+    expCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+    expCtx.drawImage(drawingCanvas, 0, 0);
 
     const link = document.createElement('a');
     link.download = `TheCraftXP_${Date.now()}.jpg`;
-    link.href = tempCanvas.toDataURL('image/jpeg', 0.95);
+    link.href = exportCanvas.toDataURL('image/jpeg', 0.95);
     link.click();
-    showToast('Downloading JPG...');
+    showToast('JPG Exported successfully');
   });
 
   copyClipboardBtn.addEventListener('click', async () => {
     try {
-      paintCanvas.toBlob(async (blob) => {
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = state.canvasWidth;
+      exportCanvas.height = state.canvasHeight;
+      const expCtx = exportCanvas.getContext('2d');
+
+      if (state.canvasBg !== 'transparent') {
+        expCtx.fillStyle = state.canvasBg;
+        expCtx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+      }
+      expCtx.drawImage(drawingCanvas, 0, 0);
+
+      exportCanvas.toBlob(async (blob) => {
         await navigator.clipboard.write([
           new ClipboardItem({ 'image/png': blob })
         ]);
