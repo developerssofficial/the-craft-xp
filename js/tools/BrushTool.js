@@ -104,7 +104,7 @@ export class BrushTool extends BaseTool {
 
   renderPreview(previewCtx, ctx) {
     previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
-    if (!this.isDrawing || this.points.length < 2) return;
+    if (!this.isDrawing || this.points.length === 0) return;
 
     const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
     const usePressure = ctx.toolState.pressureDynamics !== false;
@@ -120,7 +120,7 @@ export class BrushTool extends BaseTool {
 
     ctx.renderer.renderStroke(previewCtx, tempStroke);
 
-    if (ctx.isSymmetry && this.symPoints.length >= 2) {
+    if (ctx.isSymmetry && this.symPoints.length >= 1) {
       const tempMirror = {
         type: 'stroke',
         tool: this.mode,

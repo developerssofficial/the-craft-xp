@@ -23,6 +23,11 @@ export class CanvasRenderer {
     // Offscreen layer buffer to render elements of a single layer before compositing
     this.layerBuffer = document.createElement('canvas');
     this.layerCtx = this.layerBuffer.getContext('2d', { willReadFrequently: true });
+
+    // IMMEDIATELY initialize all canvas resolutions to match the document
+    if (this.doc.width && this.doc.height) {
+      this.resize(this.doc.width, this.doc.height);
+    }
   }
 
   resize(width, height) {
@@ -138,50 +143,74 @@ export class CanvasRenderer {
   }
 
   renderStroke(ctx, el) {
-    if (!el.points || el.points.length < 2) return;
+    if (!el.points || el.points.length === 0) return;
 
+    ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = el.tool === 'pencil' ? 1.5 : (el.size || 8);
+    const baseSize = el.tool === 'pencil' ? 1.5 : (el.size || 8);
+    ctx.lineWidth = baseSize;
 
     if (el.tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
     } else if (el.tool === 'highlighter') {
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 0.25;
       ctx.strokeStyle = el.color;
+      ctx.fillStyle = el.color;
       ctx.lineCap = 'square';
     } else if (el.tool === 'neon') {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;
-      ctx.shadowBlur = (el.size || 8) * 2;
+      ctx.fillStyle = el.color;
+      ctx.shadowBlur = baseSize * 2;
       ctx.shadowColor = el.color;
     } else {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;
+      ctx.fillStyle = el.color;
       ctx.shadowBlur = 0;
     }
 
-    ctx.beginPath();
     const pts = el.points;
+
+    // 1. Single click/tap dot
+    if (pts.length === 1) {
+      ctx.beginPath();
+      ctx.arc(pts[0].x, pts[0].y, baseSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
+    // 2. 2-point direct line
+    if (pts.length === 2) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    // 3. Smooth curve through all points
+    ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
 
-    for (let i = 1; i < pts.length; i++) {
-      const p0 = pts[i - 1];
-      const p1 = pts[i];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
       const midX = (p0.x + p1.x) / 2;
       const midY = (p0.y + p1.y) / 2;
-
-      // Pressure-based line width modulation if pressure data exists
-      if (p1.pressure !== undefined && el.tool !== 'pencil') {
-        const baseSize = el.size || 8;
-        ctx.lineWidth = Math.max(1, baseSize * (0.35 + p1.pressure * 1.3));
-      }
-
       ctx.quadraticCurveTo(p0.x, p0.y, midX, midY);
     }
+
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last.x, last.y);
     ctx.stroke();
+    ctx.restore();
   }
 
   renderSpray(ctx, el) {

@@ -28,14 +28,20 @@ export class Viewport {
 
   init() {
     window.addEventListener('resize', () => this.handleResize());
-    this.handleResize();
+    this.handleResize(true);
   }
 
-  handleResize() {
+  handleResize(force = false) {
     const width = this.viewportEl.clientWidth || window.innerWidth;
     const height = this.viewportEl.clientHeight || (window.innerHeight - 56);
 
-    if (this.doc.width === width && this.doc.height === height) return;
+    const canvasMismatch = !this.renderer.paintCanvas.width ||
+      this.renderer.paintCanvas.width !== width ||
+      this.renderer.paintCanvas.height !== height;
+
+    if (!force && !canvasMismatch && this.doc.width === width && this.doc.height === height) {
+      return;
+    }
 
     this.doc.resize(width, height);
     this.renderer.resize(width, height);
