@@ -54,16 +54,16 @@ export class CanvasRenderer {
       // Clear offscreen layer buffer
       this.layerCtx.clearRect(0, 0, width, height);
 
+      // Render raster data if present first (so vector strokes and erasers can composite over it)
+      if (layer.rasterCanvas) {
+        this.layerCtx.drawImage(layer.rasterCanvas, 0, 0);
+      }
+
       // Render vector elements on this layer buffer
       if (layer.elements && layer.elements.length > 0) {
         layer.elements.forEach(el => {
           this.renderElement(this.layerCtx, el);
         });
-      }
-
-      // Render raster data if present
-      if (layer.rasterCanvas) {
-        this.layerCtx.drawImage(layer.rasterCanvas, 0, 0);
       }
 
       // Composite the layer onto the master paint canvas
@@ -435,19 +435,21 @@ export class CanvasRenderer {
     }
 
     // Composite all visible layers
+    const layerBuffer = document.createElement('canvas');
+    layerBuffer.width = this.doc.width;
+    layerBuffer.height = this.doc.height;
+    const lbCtx = layerBuffer.getContext('2d');
+
     this.doc.layers.forEach(layer => {
       if (!layer.visible) return;
 
-      const layerBuffer = document.createElement('canvas');
-      layerBuffer.width = this.doc.width;
-      layerBuffer.height = this.doc.height;
-      const lbCtx = layerBuffer.getContext('2d');
+      lbCtx.clearRect(0, 0, this.doc.width, this.doc.height);
 
-      if (layer.elements) {
-        layer.elements.forEach(el => this.renderElement(lbCtx, el));
-      }
       if (layer.rasterCanvas) {
         lbCtx.drawImage(layer.rasterCanvas, 0, 0);
+      }
+      if (layer.elements && layer.elements.length > 0) {
+        layer.elements.forEach(el => this.renderElement(lbCtx, el));
       }
 
       expCtx.save();

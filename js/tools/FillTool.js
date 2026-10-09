@@ -27,13 +27,25 @@ export class FillTool extends BaseTool {
     // Save previous snapshot for undo
     const prevData = rasterCtx.getImageData(0, 0, width, height);
 
-    // Read composite pixel color to determine target color
-    const compData = ctx.renderer.paintCtx.getImageData(0, 0, width, height);
+    // Isolate active layer content (raster + vector) so fill works STRICTLY on active layer
+    const activeBuffer = document.createElement('canvas');
+    activeBuffer.width = width;
+    activeBuffer.height = height;
+    const activeCtx = activeBuffer.getContext('2d', { willReadFrequently: true });
+
+    if (ctx.activeLayer.rasterCanvas) {
+      activeCtx.drawImage(ctx.activeLayer.rasterCanvas, 0, 0);
+    }
+    if (ctx.activeLayer.elements && ctx.activeLayer.elements.length > 0) {
+      ctx.activeLayer.elements.forEach(el => ctx.renderer.renderElement(activeCtx, el));
+    }
+
+    const activeLayerData = activeCtx.getImageData(0, 0, width, height);
     const targetIdx = (startY * width + startX) * 4;
-    const targetR = compData.data[targetIdx];
-    const targetG = compData.data[targetIdx + 1];
-    const targetB = compData.data[targetIdx + 2];
-    const targetA = compData.data[targetIdx + 3];
+    const targetR = activeLayerData.data[targetIdx];
+    const targetG = activeLayerData.data[targetIdx + 1];
+    const targetB = activeLayerData.data[targetIdx + 2];
+    const targetA = activeLayerData.data[targetIdx + 3];
 
     // Convert active fill color to RGBA
     const fillColor = this.hexToRgba(ctx.toolState.color, ctx.toolState.opacity);
@@ -45,7 +57,7 @@ export class FillTool extends BaseTool {
 
     // Perform flood fill on active layer raster canvas
     const layerImgData = rasterCtx.getImageData(0, 0, width, height);
-    this.floodFill(layerImgData, compData, startX, startY, width, height, targetR, targetG, targetB, targetA, fillColor);
+    this.floodFill(layerImgData, activeLayerData, startX, startY, width, height, targetR, targetG, targetB, targetA, fillColor);
 
     rasterCtx.putImageData(layerImgData, 0, 0);
 

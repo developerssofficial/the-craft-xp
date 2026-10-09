@@ -24,7 +24,12 @@ export class SelectTool extends BaseTool {
     const y = ctx.y;
 
     // Check if clicking a resize handle of currently selected element
-    if (this.selectedElement) {
+    if (this.selectedElement && this.selectedLayerId) {
+      const parentLayer = ctx.doc.layers.find(l => l.id === this.selectedLayerId);
+      if (parentLayer && parentLayer.locked) {
+        events.emit('toast', { message: 'Layer is locked', type: 'warning' });
+        return;
+      }
       const handle = this.hitTestHandles(this.selectedElement, x, y, ctx.renderer);
       if (handle) {
         this.isResizing = true;
@@ -215,6 +220,10 @@ export class SelectTool extends BaseTool {
 
     const layer = doc.layers.find(l => l.id === this.selectedLayerId);
     if (!layer) return false;
+    if (layer.locked) {
+      events.emit('toast', { message: 'Cannot delete from locked layer', type: 'warning' });
+      return false;
+    }
 
     const el = this.selectedElement;
     const layerId = this.selectedLayerId;

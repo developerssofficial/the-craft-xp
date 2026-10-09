@@ -1549,3 +1549,78 @@ kbd {
   cursor: not-allowed;
 }
 
+/* Autosave Status Badge */
+.save-status-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.save-status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.save-status-badge.saved {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.save-status-badge.saved::before {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.save-status-badge.saving {
+  background: rgba(6, 182, 212, 0.12);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+.save-status-badge.saving::before {
+  background: var(--accent-cyan);
+  animation: pulse-dot 1s infinite;
+}
+
+.save-status-badge.editing {
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+.save-status-badge.editing::before {
+  background: #eab308;
+}
+
+.save-status-badge.error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.save-status-badge.error::before {
+  background: var(--danger);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Drag Reorder Indicators */
+.layer-card.drag-over-top {
+  border-top: 2px solid var(--accent-cyan) !important;
+}
+
+.layer-card.drag-over-bottom {
+  border-bottom: 2px solid var(--accent-cyan) !important;
+}
+
+

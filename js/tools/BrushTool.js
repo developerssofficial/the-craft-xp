@@ -60,14 +60,14 @@ export class BrushTool extends BaseTool {
 
     if (this.points.length >= 2) {
       const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
-      const elementsToCommit = [];
-
+      const usePressure = ctx.toolState.pressureDynamics !== false;
       const mainStroke = {
         type: 'stroke',
         tool: this.mode,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
+        usePressure,
         points: [...this.points]
       };
       elementsToCommit.push(mainStroke);
@@ -79,6 +79,7 @@ export class BrushTool extends BaseTool {
           color: color,
           size: ctx.toolState.size,
           opacity: ctx.toolState.opacity,
+          usePressure,
           points: [...this.symPoints]
         };
         elementsToCommit.push(mirrorStroke);
@@ -97,12 +98,14 @@ export class BrushTool extends BaseTool {
     if (!this.isDrawing || this.points.length < 2) return;
 
     const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
+    const usePressure = ctx.toolState.pressureDynamics !== false;
     const tempStroke = {
       type: 'stroke',
       tool: this.mode,
       color: color,
       size: ctx.toolState.size,
       opacity: ctx.toolState.opacity,
+      usePressure,
       points: this.points
     };
 
@@ -115,6 +118,7 @@ export class BrushTool extends BaseTool {
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
+        usePressure,
         points: this.symPoints
       };
       ctx.renderer.renderStroke(previewCtx, tempMirror);

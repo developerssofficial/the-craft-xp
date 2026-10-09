@@ -27,6 +27,7 @@ export class PropertiesPanelUI {
     this.stampConfig = elements.stampConfig;
     this.stampChoices = elements.stampChoices;
     this.quickDots = elements.quickDots;
+    this.pressureDynamicsCheck = elements.pressureDynamicsCheck;
 
     this.toolManager = toolManager;
     this.isCollapsed = false;
@@ -56,6 +57,16 @@ export class PropertiesPanelUI {
       this.brushOpacitySlider.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
         this.setOpacity(val / 100);
+      });
+    }
+
+    // 2.5 Pressure Dynamics Checkbox
+    if (this.pressureDynamicsCheck) {
+      this.pressureDynamicsCheck.checked = this.toolManager.toolState.pressureDynamics !== false;
+      this.pressureDynamicsCheck.addEventListener('change', (e) => {
+        this.toolManager.toolState.pressureDynamics = e.target.checked;
+        events.emit('toast', { message: `Stylus Pressure: ${e.target.checked ? 'Enabled' : 'Disabled'}` });
+        events.emit('document:changed');
       });
     }
 

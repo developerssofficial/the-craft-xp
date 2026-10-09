@@ -14,6 +14,9 @@ import { PropertiesPanelUI } from './ui/PropertiesPanelUI.js';
 import { LayersPanel } from './ui/LayersPanel.js';
 import { ExportModal } from './ui/ExportModal.js';
 import { ClearLayerCommand } from './core/commands/DrawCommand.js';
+import { Layer } from './layers/Layer.js';
+import { StorageService } from './core/StorageService.js';
+import { ProjectManager } from './ui/ProjectManager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
@@ -113,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rightEdgeTrigger,
       brushSizeSlider: document.getElementById('brushSize'),
       brushOpacitySlider: document.getElementById('brushOpacity'),
+      pressureDynamicsCheck: document.getElementById('pressureDynamicsCheck'),
       sizeBadge: document.getElementById('sizeBadge'),
       opacityBadge: document.getElementById('opacityBadge'),
       pillButtons: document.querySelectorAll('.pill-btn'),
@@ -146,6 +150,24 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer,
     commandManager
   );
+
+  // Storage Service (IndexedDB Autosave)
+  const storageService = new StorageService(doc, renderer, toolManager);
+  const saveStatusBadge = document.getElementById('saveStatusBadge');
+  if (saveStatusBadge) {
+    storageService.setStatusBadgeElement(saveStatusBadge);
+  }
+
+  // Project Manager (.craft File Save / Open)
+  const projectManager = new ProjectManager(doc, renderer, commandManager, toolManager, storageService);
+  const openProjectBtn = document.getElementById('openProjectBtn');
+  const saveProjectBtn = document.getElementById('saveProjectBtn');
+  if (openProjectBtn) {
+    openProjectBtn.addEventListener('click', () => projectManager.triggerOpenDialog());
+  }
+  if (saveProjectBtn) {
+    saveProjectBtn.addEventListener('click', () => projectManager.saveProject());
+  }
 
   // ==========================================
   // 4. Pointer Events Binding (Stylus, Touch, Mouse)
@@ -343,11 +365,74 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================
-  // 9. Initial Canvas Render
+  // 9. Initial Canvas Render & Autosave Session Restore
   // ==========================================
+  let isRestoringSession = false;
+
   events.on('document:changed', () => {
     renderer.render();
+    if (!isRestoringSession) {
+      storageService.scheduleAutosave();
+    }
   });
 
-  renderer.render();
+  (async () => {
+    try {
+      isRestoringSession = true;
+      const session = await storageService.loadSession();
+      if (session && session.layers && session.layers.length > 0) {
+        doc.backgroundColor = session.backgroundColor || '#0f1117';
+        doc.nextLayerNumber = session.nextLayerNumber || (session.layers.length + 1);
+
+        const restoredLayers = [];
+        for (const lData of session.layers) {
+          const layer = new Layer({
+            id: lData.id,
+            name: lData.name,
+            visible: lData.visible !== false,
+            locked: !!lData.locked,
+            opacity: lData.opacity !== undefined ? lData.opacity : 1.0,
+            blendMode: lData.blendMode || 'source-over',
+            type: lData.type || 'vector',
+            elements: Array.isArray(lData.elements) ? lData.elements : []
+          });
+
+          if (lData.rasterDataBitmap) {
+            layer.ensureRasterCanvas(doc.width, doc.height);
+            layer.rasterCtx.drawImage(lData.rasterDataBitmap, 0, 0);
+          }
+          restoredLayers.push(layer);
+        }
+
+        doc.layers = restoredLayers;
+        doc.activeLayerId = session.activeLayerId && restoredLayers.some(l => l.id === session.activeLayerId)
+          ? session.activeLayerId
+          : restoredLayers[0].id;
+
+        if (session.settings) {
+          if (session.settings.color) toolManager.toolState.color = session.settings.color;
+          if (session.settings.size) toolManager.toolState.size = session.settings.size;
+          if (session.settings.opacity !== undefined) toolManager.toolState.opacity = session.settings.opacity;
+          if (session.settings.fillShape !== undefined) toolManager.toolState.fillShape = session.settings.fillShape;
+          if (session.settings.pressureDynamics !== undefined) toolManager.toolState.pressureDynamics = session.settings.pressureDynamics;
+        }
+
+        if (bgPreset) {
+          bgPreset.value = doc.backgroundColor;
+        }
+
+        renderer.render();
+        events.emit('document:changed');
+        storageService.updateStatusBadge('saved');
+        console.log(`[The Craft] Restored autosaved project with ${restoredLayers.length} layers.`);
+      } else {
+        renderer.render();
+      }
+    } catch (err) {
+      console.warn('[The Craft] Could not restore autosave session:', err);
+      renderer.render();
+    } finally {
+      isRestoringSession = false;
+    }
+  })();
 });

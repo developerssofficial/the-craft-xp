@@ -152,13 +152,13 @@ export class MergeDownCommand {
 }
 
 export class SetLayerPropertyCommand {
-  constructor(document, layerId, property, newValue) {
+  constructor(document, layerId, property, newValue, explicitOldValue = undefined) {
     this.document = document;
     this.layerId = layerId;
     this.property = property;
     this.newValue = newValue;
     const layer = document.layers.find(l => l.id === layerId);
-    this.oldValue = layer ? layer[property] : null;
+    this.oldValue = explicitOldValue !== undefined ? explicitOldValue : (layer ? layer[property] : null);
   }
 
   execute() {
@@ -169,3 +169,4 @@ export class SetLayerPropertyCommand {
     this.document.setLayerProperty(this.layerId, this.property, this.oldValue);
   }
 }
+

@@ -24,7 +24,8 @@ export class ToolManager {
       size: 8,
       opacity: 1.0,
       fillShape: false,
-      selectedStamp: '⭐'
+      selectedStamp: '⭐',
+      pressureDynamics: true
     };
 
     this.registerDefaultTools();

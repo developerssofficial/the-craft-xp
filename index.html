@@ -100,6 +100,19 @@
 
       <div class="header-separator"></div>
 
+      <!-- Autosave Badge Indicator -->
+      <span id="saveStatusBadge" class="save-status-badge saved" title="Automatic IndexedDB session persistence">Autosaved</span>
+
+      <!-- Project File Actions -->
+      <button id="openProjectBtn" class="btn secondary-btn" title="Open .craft Project File">
+        <i class="fa-regular fa-folder-open"></i>
+        <span>Open</span>
+      </button>
+      <button id="saveProjectBtn" class="btn secondary-btn" title="Save Project (.craft)">
+        <i class="fa-regular fa-floppy-disk"></i>
+        <span>Save</span>
+      </button>
+
       <!-- Image Import -->
       <label for="imageUploadInput" class="btn secondary-btn" title="Upload Image / Reference">
         <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -308,6 +321,15 @@
               <span id="opacityBadge" class="value-tag">100%</span>
             </div>
             <input type="range" id="brushOpacity" min="5" max="100" value="100" class="glow-slider">
+          </div>
+
+          <!-- Stylus Pressure Dynamics Toggle -->
+          <div class="field-item">
+            <label class="toggle-checkbox" title="Dynamic brush stroke size and opacity modulation based on stylus/pen pressure">
+              <input type="checkbox" id="pressureDynamicsCheck" checked>
+              <span class="custom-box"></span>
+              <span>Stylus Pressure Dynamics</span>
+            </label>
           </div>
 
           <!-- Shape Fill Option -->

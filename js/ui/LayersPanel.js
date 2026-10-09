@@ -161,10 +161,15 @@ export class LayersPanel {
     // 1. Blend Mode Select
     const blendSelect = this.container.querySelector('#layerBlendSelect');
     if (blendSelect) {
+      let initialBlend = activeLayer.blendMode;
+      blendSelect.addEventListener('focus', () => {
+        initialBlend = activeLayer.blendMode;
+      });
       blendSelect.addEventListener('change', (e) => {
         this.commandManager.execute(
-          new SetLayerPropertyCommand(this.doc, activeLayer.id, 'blendMode', e.target.value)
+          new SetLayerPropertyCommand(this.doc, activeLayer.id, 'blendMode', e.target.value, initialBlend)
         );
+        initialBlend = e.target.value;
       });
     }
 
@@ -172,6 +177,16 @@ export class LayersPanel {
     const opacitySlider = this.container.querySelector('#layerOpacitySlider');
     const opacityVal = this.container.querySelector('#layerOpacityVal');
     if (opacitySlider) {
+      let dragStartOpacity = activeLayer.opacity;
+
+      const recordStart = () => {
+        dragStartOpacity = activeLayer.opacity;
+      };
+
+      opacitySlider.addEventListener('pointerdown', recordStart);
+      opacitySlider.addEventListener('mousedown', recordStart);
+      opacitySlider.addEventListener('focus', recordStart);
+
       opacitySlider.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
         opacityVal.textContent = `${val}%`;
@@ -181,9 +196,11 @@ export class LayersPanel {
 
       opacitySlider.addEventListener('change', (e) => {
         const val = parseInt(e.target.value, 10) / 100;
+        const oldVal = dragStartOpacity !== null ? dragStartOpacity : activeLayer.opacity;
         this.commandManager.execute(
-          new SetLayerPropertyCommand(this.doc, activeLayer.id, 'opacity', val)
+          new SetLayerPropertyCommand(this.doc, activeLayer.id, 'opacity', val, oldVal)
         );
+        dragStartOpacity = val;
       });
     }
 
