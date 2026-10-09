@@ -1,5 +1,5 @@
 /**
- * The Craft XP — Pro Digital Drawing & Design Studio
+ * The Craft — Pro Digital Drawing & Design Studio
  * Interactive Object & Freehand Canvas Engine with Select & Move Tool
  */
 
@@ -1485,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     expCtx.drawImage(drawingCanvas, 0, 0);
 
     const link = document.createElement('a');
-    link.download = `TheCraftXP_${Date.now()}.png`;
+    link.download = `TheCraft_${Date.now()}.png`;
     link.href = exportCanvas.toDataURL('image/png');
     link.click();
     showToast('PNG Exported successfully');
@@ -1502,7 +1502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     expCtx.drawImage(drawingCanvas, 0, 0);
 
     const link = document.createElement('a');
-    link.download = `TheCraftXP_${Date.now()}.jpg`;
+    link.download = `TheCraft_${Date.now()}.jpg`;
     link.href = exportCanvas.toDataURL('image/jpeg', 0.95);
     link.click();
     showToast('JPG Exported successfully');
