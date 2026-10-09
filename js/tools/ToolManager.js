@@ -60,8 +60,8 @@ export class ToolManager {
     this.registerTool(new TextTool(this.ctx.inlineTextInput));
     this.registerTool(new StampTool());
 
-    // Set default tool
-    this.setActiveTool('select');
+    // Set default tool to Brush
+    this.setActiveTool('brush');
   }
 
   registerTool(tool) {
@@ -129,6 +129,7 @@ export class ToolManager {
   handlePointerDown(e) {
     if (!this.activeTool) return;
     const ctx = this.getExecutionContext(e);
+    if (!ctx.activeLayer) return;
     if (ctx.activeLayer.locked) {
       events.emit('toast', { message: 'Layer is locked', type: 'warning' });
       return;
@@ -139,12 +140,14 @@ export class ToolManager {
   handlePointerMove(e) {
     if (!this.activeTool) return;
     const ctx = this.getExecutionContext(e);
+    if (!ctx.activeLayer) return;
     this.activeTool.onPointerMove(e, ctx);
   }
 
   handlePointerUp(e) {
     if (!this.activeTool) return;
     const ctx = this.getExecutionContext(e);
+    if (!ctx.activeLayer) return;
     this.activeTool.onPointerUp(e, ctx);
   }
 }

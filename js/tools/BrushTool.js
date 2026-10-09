@@ -58,7 +58,16 @@ export class BrushTool extends BaseTool {
     if (!this.isDrawing) return;
     this.isDrawing = false;
 
+    // Allow single click / tap dots
+    if (this.points.length === 1) {
+      this.points.push({ ...this.points[0], x: this.points[0].x + 0.1 });
+      if (ctx.isSymmetry && this.symPoints.length === 1) {
+        this.symPoints.push({ ...this.symPoints[0], x: this.symPoints[0].x + 0.1 });
+      }
+    }
+
     if (this.points.length >= 2) {
+      const elementsToCommit = [];
       const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
       const usePressure = ctx.toolState.pressureDynamics !== false;
       const mainStroke = {
