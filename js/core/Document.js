@@ -13,13 +13,15 @@ export class Document {
     this.backgroundColor = options.backgroundColor || '#0f1117';
     this.layers = [];
     this.activeLayerId = null;
+    this.nextLayerNumber = 1;
 
     if (Array.isArray(options.layers) && options.layers.length > 0) {
       this.layers = options.layers.map(l => (l instanceof Layer ? l : Layer.fromJSON(l)));
       this.activeLayerId = options.activeLayerId || this.layers[0].id;
+      this.nextLayerNumber = this.layers.length + 1;
     } else {
       // Default initial layer
-      const initialLayer = new Layer({ name: 'Layer 1' });
+      const initialLayer = new Layer({ name: `Layer ${this.nextLayerNumber++}` });
       this.layers.push(initialLayer);
       this.activeLayerId = initialLayer.id;
     }
@@ -40,7 +42,8 @@ export class Document {
   }
 
   addLayer(name = null, insertIndex = null) {
-    const newLayer = new Layer({ name: name || undefined });
+    const layerName = name || `Layer ${this.nextLayerNumber++}`;
+    const newLayer = new Layer({ name: layerName });
     if (insertIndex !== null && insertIndex >= 0 && insertIndex <= this.layers.length) {
       this.layers.splice(insertIndex, 0, newLayer);
     } else {
