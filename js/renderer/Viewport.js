@@ -5,7 +5,7 @@
 import { events } from '../core/EventBus.js';
 
 export class Viewport {
-  constructor(elements, doc, renderer) {
+  constructor(elements, doc, renderer, options = {}) {
     this.viewportEl = elements.viewport;
     this.canvasBoard = elements.canvasBoard;
     this.symmetryGuide = elements.symmetryGuide;
@@ -13,6 +13,7 @@ export class Viewport {
 
     this.doc = doc;
     this.renderer = renderer;
+    this.autoResize = options.autoResize !== undefined ? options.autoResize : true;
 
     this.zoom = 1.0;
     this.minZoom = 0.25;
@@ -28,10 +29,13 @@ export class Viewport {
 
   init() {
     window.addEventListener('resize', () => this.handleResize());
-    this.handleResize(true);
+    if (this.autoResize) {
+      this.handleResize(true);
+    }
   }
 
   handleResize(force = false) {
+    if (!this.autoResize) return;
     const width = this.viewportEl.clientWidth || window.innerWidth;
     const height = this.viewportEl.clientHeight || (window.innerHeight - 56);
 

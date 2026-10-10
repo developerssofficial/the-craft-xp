@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Craft — Animation Studio (Frame-by-Frame)</title>
+
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="animation.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Application Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <!-- Back to Drawing Studio Navigation Action -->
+      <a href="index.html" class="btn secondary-btn" id="backToDrawingBtn" title="Return to Drawing Canvas">
+        <i class="fa-solid fa-paintbrush"></i>
+        <span>Back to Drawing</span>
+      </a>
+
+      <!-- Toggle Left Sidebar Button -->
+      <button id="toggleLeftDockBtn" class="icon-btn" title="Toggle Tools Dock (Ctrl+B)">
+        <i class="fa-solid fa-bars-staggered"></i>
+      </button>
+
+      <div class="app-logo">
+        <div class="logo-badge" style="background: linear-gradient(135deg, #06b6d4, #ec4899);">
+          <i class="fa-solid fa-film"></i>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">The Craft</span>
+          <span class="brand-tag" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4;">ANIMATION</span>
+        </div>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Quick Action History -->
+      <div class="quick-history">
+        <button id="undoBtn" class="icon-btn" title="Undo (Ctrl+Z)" disabled>
+          <i class="fa-solid fa-arrow-rotate-left"></i>
+        </button>
+        <button id="redoBtn" class="icon-btn" title="Redo (Ctrl+Y)" disabled>
+          <i class="fa-solid fa-arrow-rotate-right"></i>
+        </button>
+        <button id="clearBtn" class="icon-btn danger" title="Clear Active Layer on Frame">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Canvas View Controls -->
+    <div class="header-center">
+      <div class="zoom-pill">
+        <button id="zoomOutBtn" class="zoom-btn" title="Zoom Out (-)">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <span id="zoomLevel">100%</span>
+        <button id="zoomInBtn" class="zoom-btn" title="Zoom In (+)">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button id="zoomResetBtn" class="zoom-btn" title="Reset Zoom (0)">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Canvas Toggles -->
+      <div class="mode-toggles">
+        <button id="gridToggleBtn" class="toggle-pill" title="Toggle Grid Overlay">
+          <i class="fa-solid fa-border-all"></i>
+          <span>Grid</span>
+        </button>
+        <button id="projectSettingsBtn" class="toggle-pill" title="Project Dimensions & Background Settings">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Canvas Size</span>
+        </button>
+        <button id="zenModeBtn" class="toggle-pill" title="Zen Mode / Fullscreen Canvas">
+          <i class="fa-solid fa-expand"></i>
+          <span>Zen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Controls: Autosave, File, Import, Export -->
+    <div class="header-right">
+      <!-- Autosave Badge Indicator -->
+      <span id="saveStatusBadge" class="save-status-badge saved" title="Automatic IndexedDB session persistence">Autosaved</span>
+
+      <!-- Animation Project File Actions -->
+      <button id="newAnimProjectBtn" class="btn secondary-btn" title="New Animation Project">
+        <i class="fa-regular fa-file"></i>
+        <span>New</span>
+      </button>
+      <button id="openAnimFileBtn" class="btn secondary-btn" title="Open .craftanim Project File">
+        <i class="fa-regular fa-folder-open"></i>
+        <span>Open</span>
+      </button>
+      <button id="saveAnimFileBtn" class="btn secondary-btn" title="Save Project (.craftanim)">
+        <i class="fa-regular fa-floppy-disk"></i>
+        <span>Save</span>
+      </button>
+
+      <!-- Image Import -->
+      <label for="animImageUploadInput" class="btn secondary-btn" title="Import Image as Frame / Reference">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Import</span>
+      </label>
+      <input type="file" id="animImageUploadInput" accept="image/*" style="display:none;">
+
+      <!-- Animation Export Button -->
+      <button id="animExportBtn" class="btn primary-btn" title="Export Animation as GIF, Video, or PNGs">
+        <i class="fa-solid fa-arrow-down-to-bracket"></i>
+        <span>Export</span>
+      </button>
+
+      <div class="header-separator"></div>
+
+      <!-- Toggle Right Sidebar Button -->
+      <button id="toggleRightPanelBtn" class="icon-btn active-panel-toggle" title="Toggle Properties Panel">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Workspace Container (Canvas Stage + Tool Dock + Properties) -->
+  <div class="app-workspace animation-layout" id="appWorkspace">
+    <!-- Left Floating Tool Dock -->
+    <nav class="tool-dock" id="toolDock">
+      <div class="dock-collapse-header">
+        <button id="collapseDockBtn" class="dock-collapse-btn" title="Hide Tools Dock">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <span class="group-label">Select</span>
+        <button class="tool-item" data-tool="select" data-tooltip="Select & Move (V)">
+          <i class="fa-solid fa-arrow-pointer"></i>
+        </button>
+      </div>
+
+      <div class="dock-separator"></div>
+
+      <div class="tool-group">
+        <span class="group-label">Draw</span>
+        <button class="tool-item active" data-tool="brush" data-tooltip="Smooth Brush (B)">
+          <i class="fa-solid fa-paintbrush"></i>
+        </button>
+        <button class="tool-item" data-tool="pencil" data-tooltip="Fine Pencil (P)">
+          <i class="fa-solid fa-pencil"></i>
+        </button>
+        <button class="tool-item" data-tool="neon" data-tooltip="Neon Glow (G)">
+          <i class="fa-solid fa-bolt-lightning"></i>
+        </button>
+        <button class="tool-item" data-tool="rainbow" data-tooltip="Rainbow Stream (R)">
+          <i class="fa-solid fa-rainbow"></i>
+        </button>
+        <button class="tool-item" data-tool="spray" data-tooltip="Airbrush / Spray (A)">
+          <i class="fa-solid fa-spray-can"></i>
+        </button>
+        <button class="tool-item" data-tool="highlighter" data-tooltip="Highlighter (H)">
+          <i class="fa-solid fa-highlighter"></i>
+        </button>
+        <button class="tool-item" data-tool="eraser" data-tooltip="Eraser (E)">
+          <i class="fa-solid fa-eraser"></i>
+        </button>
+      </div>
+
+      <div class="dock-separator"></div>
+
+      <div class="tool-group">
+        <span class="group-label">Shapes</span>
+        <button class="tool-item" data-tool="line" data-tooltip="Straight Line (L)">
+          <i class="fa-solid fa-slash"></i>
+        </button>
+        <button class="tool-item" data-tool="rectangle" data-tooltip="Rectangle">
+          <i class="fa-regular fa-square"></i>
+        </button>
+        <button class="tool-item" data-tool="circle" data-tooltip="Circle / Ellipse">
+          <i class="fa-regular fa-circle"></i>
+        </button>
+        <button class="tool-item" data-tool="arrow" data-tooltip="Arrow Line">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <button class="tool-item" data-tool="star" data-tooltip="Star Shape">
+          <i class="fa-regular fa-star"></i>
+        </button>
+        <button class="tool-item" data-tool="heart" data-tooltip="Heart Shape">
+          <i class="fa-regular fa-heart"></i>
+        </button>
+      </div>
+
+      <div class="dock-separator"></div>
+
+      <div class="tool-group">
+        <span class="group-label">Utilities</span>
+        <button class="tool-item" data-tool="fill" data-tooltip="Paint Bucket Fill (F)">
+          <i class="fa-solid fa-fill-drip"></i>
+        </button>
+        <button class="tool-item" data-tool="pipette" data-tooltip="Eyedropper / Color Picker (I)">
+          <i class="fa-solid fa-eye-dropper"></i>
+        </button>
+        <button class="tool-item" data-tool="text" data-tooltip="Text Tool (T)">
+          <i class="fa-solid fa-font"></i>
+        </button>
+        <button class="tool-item" data-tool="stamp" data-tooltip="Stamp / Emoji Tool">
+          <i class="fa-regular fa-face-smile"></i>
+        </button>
+      </div>
+    </nav>
+
+    <div class="edge-trigger left" id="leftEdgeTrigger"></div>
+
+    <!-- Center Drawing & Animation Canvas Stage -->
+    <main class="canvas-stage animation-stage" id="canvasStage">
+      <div class="canvas-board" id="canvasBoard">
+        <!-- Grid Canvas Overlay -->
+        <canvas id="gridCanvas"></canvas>
+        <!-- Master Painting Canvas -->
+        <canvas id="paintCanvas"></canvas>
+        <!-- Dedicated Onion Skin Canvas (Translucent previews of prev/next frames) -->
+        <canvas id="onionCanvas"></canvas>
+        <!-- Interactive Preview Overlay Canvas -->
+        <canvas id="previewCanvas"></canvas>
+        <!-- Cursor Preview Canvas -->
+        <canvas id="cursorCanvas"></canvas>
+
+        <!-- Inline Text Input Overlay -->
+        <input type="text" id="inlineCanvasTextInput" class="inline-canvas-input hidden" placeholder="Type text..." autocomplete="off">
+        <div id="symmetryGuide" class="symmetry-line hidden"></div>
+      </div>
+    </main>
+
+    <div class="edge-trigger right" id="rightEdgeTrigger"></div>
+
+    <!-- Right Properties & Layers Panel -->
+    <aside class="properties-panel" id="propertiesPanel">
+      <div class="panel-header">
+        <div class="panel-tabs">
+          <button class="panel-tab-btn active" id="tabPropertiesBtn">Tool</button>
+          <button class="panel-tab-btn" id="tabLayersBtn">
+            Layers <span class="tab-badge" id="layersCountBadge">1</span>
+          </button>
+          <button class="panel-tab-btn" id="tabOnionBtn">Onion</button>
+        </div>
+        <button id="collapsePanelBtn" class="panel-close-btn" title="Collapse Panel">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Tab 1: Tool Properties -->
+      <div id="propertiesContent" class="panel-tab-content active">
+        <!-- Size Control -->
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Brush Size</span>
+            <span class="head-val" id="sizeBadge">8 px</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="brushSize" min="1" max="150" value="8" class="custom-slider">
+          </div>
+          <div class="pill-group">
+            <button class="pill-btn" data-val="2">2px</button>
+            <button class="pill-btn active" data-val="8">8px</button>
+            <button class="pill-btn" data-val="18">18px</button>
+            <button class="pill-btn" data-val="36">36px</button>
+            <button class="pill-btn" data-val="72">72px</button>
+          </div>
+        </div>
+
+        <!-- Opacity Control -->
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Opacity</span>
+            <span class="head-val" id="opacityBadge">100%</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="brushOpacity" min="1" max="100" value="100" class="custom-slider">
+          </div>
+        </div>
+
+        <!-- Color Studio -->
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Color Palette</span>
+            <div class="color-indicator-wrap">
+              <span class="hex-badge" id="hexCodeBadge">#6366F1</span>
+              <div class="active-color-swatch" id="activeColorSwatch" style="background-color: #6366f1;"></div>
+            </div>
+          </div>
+          <div class="color-palette-grid">
+            <button class="swatch-btn active" style="background:#6366f1" data-color="#6366f1"></button>
+            <button class="swatch-btn" style="background:#8b5cf6" data-color="#8b5cf6"></button>
+            <button class="swatch-btn" style="background:#ec4899" data-color="#ec4899"></button>
+            <button class="swatch-btn" style="background:#ef4444" data-color="#ef4444"></button>
+            <button class="swatch-btn" style="background:#f97316" data-color="#f97316"></button>
+            <button class="swatch-btn" style="background:#eab308" data-color="#eab308"></button>
+            <button class="swatch-btn" style="background:#10b981" data-color="#10b981"></button>
+            <button class="swatch-btn" style="background:#06b6d4" data-color="#06b6d4"></button>
+            <button class="swatch-btn" style="background:#3b82f6" data-color="#3b82f6"></button>
+            <button class="swatch-btn" style="background:#ffffff" data-color="#ffffff"></button>
+            <button class="swatch-btn" style="background:#94a3b8" data-color="#94a3b8"></button>
+            <button class="swatch-btn" style="background:#000000" data-color="#000000"></button>
+          </div>
+          <div class="custom-color-picker-wrap">
+            <label for="nativeColorPicker" class="custom-picker-label">
+              <i class="fa-solid fa-palette"></i>
+              <span>Custom Color Wheel</span>
+            </label>
+            <input type="color" id="nativeColorPicker" value="#6366f1">
+          </div>
+        </div>
+
+        <!-- Dynamic Pressure Checkbox -->
+        <div class="prop-section">
+          <label class="checkbox-row">
+            <input type="checkbox" id="pressureDynamicsCheck" checked>
+            <span>Stylus / Pressure Dynamics</span>
+          </label>
+        </div>
+
+        <!-- Shape Configuration -->
+        <div class="prop-section hidden" id="shapeConfig">
+          <div class="section-head"><span class="head-title">Shape Fill</span></div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="shapeFillCheck">
+            <span>Fill Shape with Color</span>
+          </label>
+        </div>
+
+        <!-- Stamp Configuration -->
+        <div class="prop-section hidden" id="stampConfig">
+          <div class="section-head"><span class="head-title">Select Stamp</span></div>
+          <div class="stamp-grid">
+            <button class="stamp-choice active" data-stamp="⭐">⭐</button>
+            <button class="stamp-choice" data-stamp="❤️">❤️</button>
+            <button class="stamp-choice" data-stamp="🔥">🔥</button>
+            <button class="stamp-choice" data-stamp="✨">✨</button>
+            <button class="stamp-choice" data-stamp="🌸">🌸</button>
+            <button class="stamp-choice" data-stamp="👍">👍</button>
+            <button class="stamp-choice" data-stamp="🚀">🚀</button>
+            <button class="stamp-choice" data-stamp="⚡">⚡</button>
+          </div>
+        </div>
+
+        <!-- Brush Preview Dot -->
+        <div class="prop-section">
+          <div class="brush-preview-box">
+            <div id="brushDotPreview" class="brush-dot" style="width:8px; height:8px; background-color:#6366f1;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Frame Layers Panel Content -->
+      <div id="layersPanelContent" class="panel-tab-content hidden">
+        <div id="frameLayersPanelContainer"></div>
+      </div>
+
+      <!-- Tab 3: Onion Skin Settings -->
+      <div id="onionPanelContent" class="panel-tab-content hidden">
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Previous Frames (Past)</span>
+          </div>
+          <div class="slider-row">
+            <input type="number" id="onionPrevCount" min="0" max="5" value="2" class="custom-slider" style="width: 70px;">
+            <small class="text-muted" style="margin-left:8px;">frames back</small>
+          </div>
+        </div>
+
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Next Frames (Future)</span>
+          </div>
+          <div class="slider-row">
+            <input type="number" id="onionNextCount" min="0" max="5" value="1" class="custom-slider" style="width: 70px;">
+            <small class="text-muted" style="margin-left:8px;">frames forward</small>
+          </div>
+        </div>
+
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Ghost Opacity</span>
+            <span class="head-val" id="onionOpacityVal">35%</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="onionOpacitySlider" min="5" max="80" value="35" class="custom-slider">
+          </div>
+        </div>
+
+        <div class="prop-section">
+          <div class="section-head">
+            <span class="head-title">Ghost Tint Mode</span>
+          </div>
+          <select id="onionTintSelect" style="width:100%; background:var(--bg-surface); color:#fff; padding:6px; border-radius:6px; border:1px solid var(--border-color);">
+            <option value="color" selected>Color Tinted (Red past / Cyan future)</option>
+            <option value="original">Original Colors (Translucent)</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Bottom Floating Color & Tool Dock -->
+  <div class="floating-quick-bar" id="floatingQuickBar">
+    <div class="quick-tools">
+      <button class="quick-btn active" data-action="brush" title="Brush (B)"><i class="fa-solid fa-paintbrush"></i></button>
+      <button class="quick-btn" data-action="pencil" title="Fine Pencil (P)"><i class="fa-solid fa-pencil"></i></button>
+      <button class="quick-btn" data-action="eraser" title="Eraser (E)"><i class="fa-solid fa-eraser"></i></button>
+      <button class="quick-btn" data-action="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+      <button class="quick-btn" data-action="redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-arrow-rotate-right"></i></button>
+    </div>
+
+    <div class="bar-separator"></div>
+
+    <div class="quick-colors">
+      <div class="bottom-custom-color-wrap" title="Pick Any Custom Color">
+        <input type="color" id="bottomColorPicker" value="#6366f1">
+        <label for="bottomColorPicker" class="color-wheel-btn" id="bottomColorWheelBtn" title="Choose ANY Custom Color">
+          <i class="fa-solid fa-palette"></i>
+        </label>
+      </div>
+
+      <span class="quick-dot active" style="background:#6366f1" data-color="#6366f1" title="Indigo"></span>
+      <span class="quick-dot" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></span>
+      <span class="quick-dot" style="background:#10b981" data-color="#10b981" title="Green"></span>
+      <span class="quick-dot" style="background:#eab308" data-color="#eab308" title="Yellow"></span>
+      <span class="quick-dot" style="background:#ef4444" data-color="#ef4444" title="Red"></span>
+      <span class="quick-dot" style="background:#ec4899" data-color="#ec4899" title="Pink"></span>
+      <span class="quick-dot" style="background:#ffffff" data-color="#ffffff" title="White"></span>
+      <span class="quick-dot" style="background:#000000" data-color="#000000" title="Black"></span>
+    </div>
+  </div>
+
+  <!-- Bottom Animation Timeline Bar (Frame-by-Frame Strip & Playback) -->
+  <div class="timeline-container" id="timelineContainer"></div>
+
+  <!-- Project Dimensions & Background Settings Modal -->
+  <div class="modal-overlay hidden" id="projectSettingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Animation Project Settings</h3>
+        <button id="settingsModalCloseBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <label>Project Title:
+            <input type="text" id="settingsProjectName" value="Untitled Animation">
+          </label>
+        </div>
+        <div class="modal-row">
+          <label>Size Preset:
+            <select id="settingsSizePresets">
+              <option value="1280x720" selected>HD (1280 × 720)</option>
+              <option value="1920x1080">Full HD (1920 × 1080)</option>
+              <option value="1080x1080">Square (1080 × 1080)</option>
+              <option value="800x600">Classic (800 × 600)</option>
+              <option value="640x480">Retro (640 × 480)</option>
+            </select>
+          </label>
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:12px;">
+          <label style="flex:1;">Width:
+            <input type="number" id="settingsCanvasWidth" value="1280" min="100" max="3840">
+          </label>
+          <label style="flex:1;">Height:
+            <input type="number" id="settingsCanvasHeight" value="720" min="100" max="2160">
+          </label>
+        </div>
+        <div class="modal-row">
+          <label>Canvas Background:
+            <select id="settingsBgPreset">
+              <option value="#0f1117" selected>Dark Studio (#0f1117)</option>
+              <option value="#ffffff">Pure White</option>
+              <option value="#1e1e2e">Deep Indigo</option>
+              <option value="#f8fafc">Light Slate</option>
+              <option value="#18181b">Onyx Dark</option>
+              <option value="transparent">Transparent</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="applySettingsBtn" class="btn primary-btn">Apply Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Animation Modal -->
+  <div class="modal-overlay hidden" id="animExportModal">
+    <div class="modal-card" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3>Export Animation</h3>
+        <button id="exportModalCloseBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:10px;">
+          Select your desired format. All exports are generated cleanly without onion-skin ghosts.
+        </p>
+
+        <div class="export-formats-grid">
+          <button class="format-card-btn" id="exportGifBtn">
+            <div class="format-icon gif"><i class="fa-solid fa-film"></i></div>
+            <div class="format-info">
+              <strong>Animated GIF</strong>
+              <small>Playable anywhere, loops continuously</small>
+            </div>
+          </button>
+
+          <button class="format-card-btn" id="exportVideoBtn">
+            <div class="format-icon video"><i class="fa-solid fa-video"></i></div>
+            <div class="format-info">
+              <strong>Video (MP4 / WebM)</strong>
+              <small>High resolution HTML5 video recording</small>
+            </div>
+          </button>
+
+          <button class="format-card-btn" id="exportZipBtn">
+            <div class="format-icon zip"><i class="fa-solid fa-file-zipper"></i></div>
+            <div class="format-info">
+              <strong>PNG Sequence (ZIP)</strong>
+              <small>Lossless PNG files for each frame in a ZIP</small>
+            </div>
+          </button>
+
+          <button class="format-card-btn" id="exportSpritesheetBtn">
+            <div class="format-icon sheet"><i class="fa-solid fa-table-cells"></i></div>
+            <div class="format-info">
+              <strong>Spritesheet PNG</strong>
+              <small>All frames stitched in a grid sheet</small>
+            </div>
+          </button>
+
+          <button class="format-card-btn" id="exportSingleFrameBtn" style="grid-column: span 2;">
+            <div class="format-icon frame"><i class="fa-regular fa-image"></i></div>
+            <div class="format-info">
+              <strong>Current Frame PNG</strong>
+              <small>Export snapshot of the currently selected frame</small>
+            </div>
+          </button>
+        </div>
+
+        <div class="export-progress-wrap hidden" id="exportProgressWrap">
+          <div class="export-progress-bar-bg">
+            <div class="export-progress-bar-fill" id="exportProgressBar"></div>
+          </div>
+          <span class="export-progress-status" id="exportProgressStatus">Rendering...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text Input Modal -->
+  <div class="modal-overlay hidden" id="textInputModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Text on Canvas</h3>
+        <button id="modalCloseBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="canvasTextInput" placeholder="Type your text here..." autofocus>
+        <div class="modal-row">
+          <label>Font Size:
+            <select id="modalFontSize">
+              <option value="20">Small (20px)</option>
+              <option value="32" selected>Medium (32px)</option>
+              <option value="48">Large (48px)</option>
+              <option value="72">Extra Large (72px)</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelTextBtn" class="btn secondary-btn">Cancel</button>
+        <button id="confirmTextBtn" class="btn primary-btn">Insert Text</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast-popup"></div>
+
+  <!-- Tab Switching Handler for Right Panel in Animation View -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabProps = document.getElementById('tabPropertiesBtn');
+      const tabLayers = document.getElementById('tabLayersBtn');
+      const tabOnion = document.getElementById('tabOnionBtn');
+      const contentProps = document.getElementById('propertiesContent');
+      const contentLayers = document.getElementById('layersPanelContent');
+      const contentOnion = document.getElementById('onionPanelContent');
+
+      function activateTab(activeBtn, activeContent) {
+        [tabProps, tabLayers, tabOnion].forEach(b => b?.classList.remove('active'));
+        [contentProps, contentLayers, contentOnion].forEach(c => c?.classList.add('hidden'));
+        activeBtn?.classList.add('active');
+        activeContent?.classList.remove('hidden');
+      }
+
+      tabProps?.addEventListener('click', () => activateTab(tabProps, contentProps));
+      tabLayers?.addEventListener('click', () => activateTab(tabLayers, contentLayers));
+      tabOnion?.addEventListener('click', () => activateTab(tabOnion, contentOnion));
+    });
+  </script>
+
+  <!-- Main Animation Studio Bootstrapper -->
+  <script type="module" src="js/animation/AnimationApp.js"></script>
+</body>
+</html>

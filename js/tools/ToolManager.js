@@ -98,17 +98,21 @@ export class ToolManager {
   }
 
   getExecutionContext(e) {
-    const rect = this.ctx.paintCanvas.getBoundingClientRect();
+    const canvas = this.ctx.paintCanvas;
+    const rect = canvas.getBoundingClientRect();
     const clientX = e.clientX;
     const clientY = e.clientY;
 
     const rawX = clientX - rect.left;
     const rawY = clientY - rect.top;
 
-    // Scale according to viewport zoom if applicable
-    const zoom = this.ctx.viewportModel ? this.ctx.viewportModel.zoom : 1.0;
-    const x = rawX / zoom;
-    const y = rawY / zoom;
+    // Scale according to ratio of internal canvas buffer resolution to rendered screen rect
+    // This perfectly compensates for CSS scaling, zoom transforms, stage centering, and letterboxing
+    const scaleX = rect.width > 0 ? (canvas.width / rect.width) : 1;
+    const scaleY = rect.height > 0 ? (canvas.height / rect.height) : 1;
+
+    const x = rawX * scaleX;
+    const y = rawY * scaleY;
 
     // Pressure support (defaults to 0.5 for mouse, actual pressure for stylus)
     const pressure = e.pressure !== undefined && e.pressure > 0 ? e.pressure : 0.5;
