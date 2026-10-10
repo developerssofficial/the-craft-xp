@@ -79,7 +79,7 @@
           <i class="fa-solid fa-border-all"></i>
           <span>Grid</span>
         </button>
-        <button id="projectSettingsBtn" class="toggle-pill" title="Project Dimensions & Background Settings">
+        <button id="projectSettingsBtn" class="toggle-pill" title="Project Dimensions & Settings">
           <i class="fa-solid fa-sliders"></i>
           <span>Canvas Size</span>
         </button>
@@ -87,6 +87,27 @@
           <i class="fa-solid fa-expand"></i>
           <span>Zen</span>
         </button>
+      </div>
+
+      <div class="header-separator"></div>
+
+      <!-- Quick Header Color Picker -->
+      <div class="header-color-picker-wrap" title="Active Brush Color — Click to choose ANY color">
+        <input type="color" id="headerColorPicker" value="#18181b">
+        <label for="headerColorPicker" class="header-color-indicator" id="headerColorIndicator" style="background-color: #18181b;"></label>
+      </div>
+
+      <!-- Quick Canvas Background Selector -->
+      <div class="bg-selector" title="Canvas Background Color">
+        <i class="fa-solid fa-fill"></i>
+        <select id="animBgPreset">
+          <option value="#ffffff" selected>White Canvas</option>
+          <option value="#0f1117">Dark Studio</option>
+          <option value="#1e1e2e">Deep Indigo</option>
+          <option value="#f8fafc">Light Slate</option>
+          <option value="#18181b">Onyx Dark</option>
+          <option value="transparent">Transparent</option>
+        </select>
       </div>
     </div>
 
@@ -258,104 +279,109 @@
       </div>
 
       <!-- Tab 1: Tool Properties -->
-      <div id="propertiesContent" class="panel-tab-content active">
-        <!-- Size Control -->
-        <div class="prop-section">
+      <div id="propertiesContent" class="panel-tab-content">
+        <!-- Brush & Stroke Config Card -->
+        <div class="panel-section">
           <div class="section-head">
-            <span class="head-title">Brush Size</span>
-            <span class="head-val" id="sizeBadge">8 px</span>
-          </div>
-          <div class="slider-row">
-            <input type="range" id="brushSize" min="1" max="150" value="8" class="custom-slider">
-          </div>
-          <div class="pill-group">
-            <button class="pill-btn" data-val="2">2px</button>
-            <button class="pill-btn active" data-val="8">8px</button>
-            <button class="pill-btn" data-val="18">18px</button>
-            <button class="pill-btn" data-val="36">36px</button>
-            <button class="pill-btn" data-val="72">72px</button>
-          </div>
-        </div>
-
-        <!-- Opacity Control -->
-        <div class="prop-section">
-          <div class="section-head">
-            <span class="head-title">Opacity</span>
-            <span class="head-val" id="opacityBadge">100%</span>
-          </div>
-          <div class="slider-row">
-            <input type="range" id="brushOpacity" min="1" max="100" value="100" class="custom-slider">
-          </div>
-        </div>
-
-        <!-- Color Studio -->
-        <div class="prop-section">
-          <div class="section-head">
-            <span class="head-title">Color Palette</span>
-            <div class="color-indicator-wrap">
-              <span class="hex-badge" id="hexCodeBadge">#6366F1</span>
-              <div class="active-color-swatch" id="activeColorSwatch" style="background-color: #6366f1;"></div>
+            <span class="head-title">Stroke Properties</span>
+            <div class="preview-ring" id="previewRing">
+              <div id="brushDotPreview"></div>
             </div>
           </div>
-          <div class="color-palette-grid">
-            <button class="swatch-btn active" style="background:#6366f1" data-color="#6366f1"></button>
-            <button class="swatch-btn" style="background:#8b5cf6" data-color="#8b5cf6"></button>
-            <button class="swatch-btn" style="background:#ec4899" data-color="#ec4899"></button>
-            <button class="swatch-btn" style="background:#ef4444" data-color="#ef4444"></button>
-            <button class="swatch-btn" style="background:#f97316" data-color="#f97316"></button>
-            <button class="swatch-btn" style="background:#eab308" data-color="#eab308"></button>
-            <button class="swatch-btn" style="background:#10b981" data-color="#10b981"></button>
-            <button class="swatch-btn" style="background:#06b6d4" data-color="#06b6d4"></button>
-            <button class="swatch-btn" style="background:#3b82f6" data-color="#3b82f6"></button>
-            <button class="swatch-btn" style="background:#ffffff" data-color="#ffffff"></button>
-            <button class="swatch-btn" style="background:#94a3b8" data-color="#94a3b8"></button>
-            <button class="swatch-btn" style="background:#000000" data-color="#000000"></button>
+
+          <!-- Stroke Width -->
+          <div class="field-item">
+            <div class="field-label">
+              <span>Brush Size</span>
+              <span id="sizeBadge" class="value-tag">8px</span>
+            </div>
+            <input type="range" id="brushSize" min="1" max="100" value="8" class="glow-slider">
+            <div class="preset-pills">
+              <button class="pill-btn" data-size="3">Fine (3)</button>
+              <button class="pill-btn active" data-size="8">Med (8)</button>
+              <button class="pill-btn" data-size="20">Bold (20)</button>
+              <button class="pill-btn" data-size="50">Thick (50)</button>
+            </div>
           </div>
-          <div class="custom-color-picker-wrap">
-            <label for="nativeColorPicker" class="custom-picker-label">
-              <i class="fa-solid fa-palette"></i>
-              <span>Custom Color Wheel</span>
+
+          <!-- Opacity Slider -->
+          <div class="field-item">
+            <div class="field-label">
+              <span>Opacity</span>
+              <span id="opacityBadge" class="value-tag">100%</span>
+            </div>
+            <input type="range" id="brushOpacity" min="5" max="100" value="100" class="glow-slider">
+          </div>
+
+          <!-- Stylus Pressure Dynamics Toggle -->
+          <div class="field-item">
+            <label class="toggle-checkbox" title="Dynamic brush stroke size and opacity modulation based on stylus/pen pressure">
+              <input type="checkbox" id="pressureDynamicsCheck" checked>
+              <span class="custom-box"></span>
+              <span>Stylus Pressure Dynamics</span>
             </label>
-            <input type="color" id="nativeColorPicker" value="#6366f1">
+          </div>
+
+          <!-- Shape Fill Option -->
+          <div class="field-item shape-config hidden" id="shapeConfig">
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="shapeFillCheck">
+              <span class="custom-box"></span>
+              <span>Fill Shape with Color</span>
+            </label>
+          </div>
+
+          <!-- Stamp Selector -->
+          <div class="field-item stamp-config hidden" id="stampConfig">
+            <span class="field-label">Select Stamp</span>
+            <div class="stamp-selector">
+              <button class="stamp-choice active" data-emoji="⭐">⭐</button>
+              <button class="stamp-choice" data-emoji="❤️">❤️</button>
+              <button class="stamp-choice" data-emoji="🔥">🔥</button>
+              <button class="stamp-choice" data-emoji="✨">✨</button>
+              <button class="stamp-choice" data-emoji="🚀">🚀</button>
+              <button class="stamp-choice" data-emoji="🎨">🎨</button>
+              <button class="stamp-choice" data-emoji="⚡">⚡</button>
+              <button class="stamp-choice" data-emoji="🌸">🌸</button>
+            </div>
           </div>
         </div>
 
-        <!-- Dynamic Pressure Checkbox -->
-        <div class="prop-section">
-          <label class="checkbox-row">
-            <input type="checkbox" id="pressureDynamicsCheck" checked>
-            <span>Stylus / Pressure Dynamics</span>
-          </label>
-        </div>
-
-        <!-- Shape Configuration -->
-        <div class="prop-section hidden" id="shapeConfig">
-          <div class="section-head"><span class="head-title">Shape Fill</span></div>
-          <label class="checkbox-row">
-            <input type="checkbox" id="shapeFillCheck">
-            <span>Fill Shape with Color</span>
-          </label>
-        </div>
-
-        <!-- Stamp Configuration -->
-        <div class="prop-section hidden" id="stampConfig">
-          <div class="section-head"><span class="head-title">Select Stamp</span></div>
-          <div class="stamp-grid">
-            <button class="stamp-choice active" data-stamp="⭐">⭐</button>
-            <button class="stamp-choice" data-stamp="❤️">❤️</button>
-            <button class="stamp-choice" data-stamp="🔥">🔥</button>
-            <button class="stamp-choice" data-stamp="✨">✨</button>
-            <button class="stamp-choice" data-stamp="🌸">🌸</button>
-            <button class="stamp-choice" data-stamp="👍">👍</button>
-            <button class="stamp-choice" data-stamp="🚀">🚀</button>
-            <button class="stamp-choice" data-stamp="⚡">⚡</button>
+        <!-- Color Palette Card -->
+        <div class="panel-section">
+          <div class="section-head">
+            <span class="head-title">Color Palette</span>
+            <div class="active-color-swatch" id="activeColorSwatch" title="Current Active Color" style="background-color: #18181b;"></div>
           </div>
-        </div>
 
-        <!-- Brush Preview Dot -->
-        <div class="prop-section">
-          <div class="brush-preview-box">
-            <div id="brushDotPreview" class="brush-dot" style="width:8px; height:8px; background-color:#6366f1;"></div>
+          <!-- Custom Color Trigger -->
+          <div class="color-picker-row">
+            <input type="color" id="nativeColorPicker" value="#18181b">
+            <label for="nativeColorPicker" class="custom-picker-btn">
+              <i class="fa-solid fa-palette"></i>
+              <span>Pick Any Custom Color</span>
+            </label>
+            <span id="hexCodeBadge" class="hex-tag">#18181B</span>
+          </div>
+
+          <!-- Curated Palette Grid (16 Colors) -->
+          <div class="swatch-grid">
+            <button class="swatch-btn active" style="--c: #18181b; background-color: #18181b;" data-color="#18181b" title="Charcoal Black"></button>
+            <button class="swatch-btn" style="--c: #6366f1; background-color: #6366f1;" data-color="#6366f1" title="Indigo"></button>
+            <button class="swatch-btn" style="--c: #3b82f6; background-color: #3b82f6;" data-color="#3b82f6" title="Vibrant Blue"></button>
+            <button class="swatch-btn" style="--c: #06b6d4; background-color: #06b6d4;" data-color="#06b6d4" title="Cyan"></button>
+            <button class="swatch-btn" style="--c: #10b981; background-color: #10b981;" data-color="#10b981" title="Emerald Green"></button>
+            <button class="swatch-btn" style="--c: #eab308; background-color: #eab308;" data-color="#eab308" title="Sunny Yellow"></button>
+            <button class="swatch-btn" style="--c: #f97316; background-color: #f97316;" data-color="#f97316" title="Bright Orange"></button>
+            <button class="swatch-btn" style="--c: #ef4444; background-color: #ef4444;" data-color="#ef4444" title="Crimson Red"></button>
+            <button class="swatch-btn" style="--c: #ec4899; background-color: #ec4899;" data-color="#ec4899" title="Hot Pink"></button>
+            <button class="swatch-btn" style="--c: #a855f7; background-color: #a855f7;" data-color="#a855f7" title="Purple"></button>
+            <button class="swatch-btn" style="--c: #00ffcc; background-color: #00ffcc;" data-color="#00ffcc" title="Neon Teal"></button>
+            <button class="swatch-btn" style="--c: #ff007f; background-color: #ff007f;" data-color="#ff007f" title="Neon Rose"></button>
+            <button class="swatch-btn" style="--c: #ffffff; background-color: #ffffff;" data-color="#ffffff" title="Pure White"></button>
+            <button class="swatch-btn" style="--c: #94a3b8; background-color: #94a3b8;" data-color="#94a3b8" title="Cool Gray"></button>
+            <button class="swatch-btn" style="--c: #334155; background-color: #334155;" data-color="#334155" title="Slate"></button>
+            <button class="swatch-btn" style="--c: #854d0e; background-color: #854d0e;" data-color="#854d0e" title="Warm Amber"></button>
           </div>
         </div>
       </div>
@@ -479,8 +505,8 @@
         <div class="modal-row">
           <label>Canvas Background:
             <select id="settingsBgPreset">
-              <option value="#0f1117" selected>Dark Studio (#0f1117)</option>
-              <option value="#ffffff">Pure White</option>
+              <option value="#ffffff" selected>Pure White (#ffffff)</option>
+              <option value="#0f1117">Dark Studio (#0f1117)</option>
               <option value="#1e1e2e">Deep Indigo</option>
               <option value="#f8fafc">Light Slate</option>
               <option value="#18181b">Onyx Dark</option>

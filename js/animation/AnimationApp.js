@@ -23,7 +23,7 @@ export class AnimationApp {
     this.project = new AnimationProject({
       width: 1280,
       height: 720,
-      backgroundColor: '#0f1117',
+      backgroundColor: '#ffffff',
       fps: 12
     });
 
@@ -68,6 +68,10 @@ export class AnimationApp {
       this.isRestoring = true;
       const savedProject = await this.storage.loadSession();
       if (savedProject && savedProject.frames && savedProject.frames.length > 0) {
+        // Migrate old dark default background (#0f1117) to pure white (#ffffff)
+        if (savedProject.backgroundColor === '#0f1117' || !savedProject.backgroundColor) {
+          savedProject.backgroundColor = '#ffffff';
+        }
         this.project = savedProject;
         this.exporter.project = this.project;
         this.storage.project = this.project;
@@ -111,7 +115,24 @@ export class AnimationApp {
     // Ensure canvas board dimensions and background
     canvasBoard.style.width = `${this.project.width}px`;
     canvasBoard.style.height = `${this.project.height}px`;
-    canvasBoard.style.backgroundColor = this.project.backgroundColor;
+    canvasBoard.style.backgroundColor = this.project.backgroundColor || '#ffffff';
+
+    // Canvas Background Preset Dropdown in Header
+    const animBgPreset = document.getElementById('animBgPreset');
+    if (animBgPreset) {
+      animBgPreset.value = this.project.backgroundColor || '#ffffff';
+      animBgPreset.addEventListener('change', (e) => {
+        const newBg = e.target.value;
+        this.project.backgroundColor = newBg;
+        this.doc.backgroundColor = newBg;
+        canvasBoard.style.backgroundColor = newBg;
+        this.renderer.render();
+        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        this.timelineUI.updateActiveThumbnail();
+        this.storage.scheduleAutosave();
+        events.emit('toast', { message: `Canvas Background: ${e.target.options[e.target.selectedIndex].text}` });
+      });
+    }
 
     // 4. App Context for Tools
     const appContext = {
@@ -160,6 +181,8 @@ export class AnimationApp {
         swatchButtons: document.querySelectorAll('.swatch-btn'),
         nativeColorPicker: document.getElementById('nativeColorPicker'),
         bottomColorPicker: document.getElementById('bottomColorPicker'),
+        headerColorPicker: document.getElementById('headerColorPicker'),
+        headerColorIndicator: document.getElementById('headerColorIndicator'),
         activeColorSwatch: document.getElementById('activeColorSwatch'),
         hexCodeBadge: document.getElementById('hexCodeBadge'),
         brushDotPreview: document.getElementById('brushDotPreview'),
@@ -418,6 +441,12 @@ export class AnimationApp {
         if (canvasBoard) {
           canvasBoard.style.width = `${newW}px`;
           canvasBoard.style.height = `${newH}px`;
+          canvasBoard.style.backgroundColor = newBg;
+        }
+
+        const animBgPreset = document.getElementById('animBgPreset');
+        if (animBgPreset) {
+          animBgPreset.value = newBg;
         }
 
         this.renderer.resize(newW, newH);
@@ -553,6 +582,12 @@ export class AnimationApp {
         if (canvasBoard) {
           canvasBoard.style.width = `${this.project.width}px`;
           canvasBoard.style.height = `${this.project.height}px`;
+          canvasBoard.style.backgroundColor = this.project.backgroundColor || '#ffffff';
+        }
+
+        const animBgPreset = document.getElementById('animBgPreset');
+        if (animBgPreset) {
+          animBgPreset.value = this.project.backgroundColor || '#ffffff';
         }
 
         this.renderer.resize(this.project.width, this.project.height);
@@ -574,7 +609,7 @@ export class AnimationApp {
           name: 'New Animation',
           width: 1280,
           height: 720,
-          backgroundColor: '#0f1117',
+          backgroundColor: '#ffffff',
           fps: 12
         });
         this.exporter.project = this.project;
@@ -583,6 +618,18 @@ export class AnimationApp {
         this.doc.width = this.project.width;
         this.doc.height = this.project.height;
         this.doc.backgroundColor = this.project.backgroundColor;
+
+        const canvasBoard = document.getElementById('canvasBoard');
+        if (canvasBoard) {
+          canvasBoard.style.width = `${this.project.width}px`;
+          canvasBoard.style.height = `${this.project.height}px`;
+          canvasBoard.style.backgroundColor = '#ffffff';
+        }
+
+        const animBgPreset = document.getElementById('animBgPreset');
+        if (animBgPreset) {
+          animBgPreset.value = '#ffffff';
+        }
 
         this.switchFrame(0);
         this.timelineUI.render();

@@ -119,7 +119,7 @@ export class AnimationProject {
     this.name = options.name || 'Untitled Animation';
     this.width = options.width || 1280;
     this.height = options.height || 720;
-    this.backgroundColor = options.backgroundColor || '#0f1117';
+    this.backgroundColor = options.backgroundColor || '#ffffff';
     this.fps = options.fps || 12;
     this.loop = options.loop !== undefined ? options.loop : true;
     this.frames = [];
@@ -237,7 +237,7 @@ export class AnimationProject {
       name: data.name,
       width: data.width || 1280,
       height: data.height || 720,
-      backgroundColor: data.backgroundColor || '#0f1117',
+      backgroundColor: data.backgroundColor || '#ffffff',
       fps: data.fps || 12,
       loop: data.loop !== undefined ? data.loop : true,
       currentFrameIndex: data.currentFrameIndex || 0,

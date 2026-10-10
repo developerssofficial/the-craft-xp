@@ -19,6 +19,8 @@ export class PropertiesPanelUI {
     this.swatchButtons = elements.swatchButtons;
     this.nativeColorPicker = elements.nativeColorPicker;
     this.bottomColorPicker = elements.bottomColorPicker;
+    this.headerColorPicker = elements.headerColorPicker;
+    this.headerColorIndicator = elements.headerColorIndicator;
     this.activeColorSwatch = elements.activeColorSwatch;
     this.hexCodeBadge = elements.hexCodeBadge;
     this.brushDotPreview = elements.brushDotPreview;
@@ -77,12 +79,15 @@ export class PropertiesPanelUI {
       });
     }
 
-    // 4. Color Pickers (Native, Bottom, Swatches)
+    // 4. Color Pickers (Native, Bottom, Header, Swatches)
     if (this.nativeColorPicker) {
       this.nativeColorPicker.addEventListener('input', (e) => this.setColor(e.target.value));
     }
     if (this.bottomColorPicker) {
       this.bottomColorPicker.addEventListener('input', (e) => this.setColor(e.target.value));
+    }
+    if (this.headerColorPicker) {
+      this.headerColorPicker.addEventListener('input', (e) => this.setColor(e.target.value));
     }
 
     if (this.swatchButtons) {
@@ -147,6 +152,8 @@ export class PropertiesPanelUI {
     this.toolManager.toolState.color = color;
     if (this.nativeColorPicker) this.nativeColorPicker.value = color;
     if (this.bottomColorPicker) this.bottomColorPicker.value = color;
+    if (this.headerColorPicker) this.headerColorPicker.value = color;
+    if (this.headerColorIndicator) this.headerColorIndicator.style.backgroundColor = color;
     if (this.activeColorSwatch) this.activeColorSwatch.style.backgroundColor = color;
     if (this.hexCodeBadge) this.hexCodeBadge.textContent = color.toUpperCase();
 

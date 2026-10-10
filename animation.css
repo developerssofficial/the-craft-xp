@@ -649,3 +649,150 @@
   border-color: var(--accent);
 }
 
+/* Floating Quick Color Bar: positioned directly above timeline */
+.floating-quick-bar {
+  position: fixed !important;
+  bottom: 155px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 48 !important;
+}
+
+/* Header Quick Color Picker in Animation Studio */
+.header-color-picker-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#headerColorPicker {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.header-color-indicator {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  display: block;
+}
+
+.header-color-indicator:hover {
+  transform: scale(1.15);
+  border-color: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+/* Default White Canvas Board Background */
+.canvas-stage.animation-stage .canvas-board {
+  background-color: #ffffff;
+}
+
+/* ==========================================================
+   Color Palette & Swatches in Animation Studio
+   ========================================================== */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.custom-picker-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-picker-btn:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.active-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.swatch-btn {
+  aspect-ratio: 1;
+  min-height: 38px;
+  border-radius: 8px;
+  background-color: var(--c);
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.swatch-btn:hover {
+  transform: scale(1.12);
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.swatch-btn.active {
+  border-color: #ffffff !important;
+  transform: scale(1.15);
+  box-shadow: 0 0 14px var(--c, #fff) !important;
+  outline: 2px solid var(--accent);
+}
+
+/* Background Preset Selector in Header */
+.bg-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.bg-selector select {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.bg-selector select option {
+  background: #181a24;
+  color: #fff;
+}
+
+
