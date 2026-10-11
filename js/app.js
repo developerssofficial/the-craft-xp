@@ -190,6 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
     toolManager.handlePointerUp(e);
   });
 
+  viewport.addEventListener('pointerleave', (e) => {
+    toolManager.handlePointerLeave(e);
+  });
+
   // ==========================================
   // 5. Header Action Controls
   // ==========================================

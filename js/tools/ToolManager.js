@@ -154,4 +154,10 @@ export class ToolManager {
     if (!ctx.activeLayer) return;
     this.activeTool.onPointerUp(e, ctx);
   }
+
+  handlePointerLeave(e) {
+    if (this.ctx.renderer && this.ctx.renderer.clearCursorRing) {
+      this.ctx.renderer.clearCursorRing();
+    }
+  }
 }

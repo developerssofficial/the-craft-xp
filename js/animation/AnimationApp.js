@@ -257,6 +257,10 @@ export class AnimationApp {
       this.toolManager.handlePointerUp(e);
     });
 
+    viewport.addEventListener('pointerleave', (e) => {
+      this.toolManager.handlePointerLeave(e);
+    });
+
     // 9. Document Changed Events (Strokes committed)
     events.on('document:changed', () => {
       this.renderer.render();

@@ -14,6 +14,7 @@ export class BrushTool extends BaseTool {
     this.points = [];
     this.symPoints = [];
     this.rainbowHue = 0;
+    this.currentRenderer = null;
   }
 
   onPointerDown(e, ctx) {
@@ -22,6 +23,11 @@ export class BrushTool extends BaseTool {
     }
 
     this.isDrawing = true;
+    this.currentRenderer = ctx.renderer;
+    if (ctx.renderer && ctx.renderer.clearCursorRing) {
+      ctx.renderer.clearCursorRing();
+    }
+
     const p = { x: ctx.x, y: ctx.y, pressure: ctx.pressure };
     this.points = [p];
 
@@ -32,12 +38,25 @@ export class BrushTool extends BaseTool {
       this.symPoints = [];
     }
 
+    // Begin live real-time eraser composite session
+    if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.beginLiveEraser) {
+      ctx.renderer.beginLiveEraser(ctx.activeLayer.id);
+    }
+
     // Set preview cursor
     this.renderPreview(ctx.renderer.previewCtx, ctx);
   }
 
   onPointerMove(e, ctx) {
-    if (!this.isDrawing) return;
+    this.currentRenderer = ctx.renderer;
+
+    if (!this.isDrawing) {
+      // Show cursor ring when hovering with eraser or brush
+      if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.drawCursorRing) {
+        ctx.renderer.drawCursorRing(ctx.x, ctx.y, (ctx.toolState.size || 8) / 2);
+      }
+      return;
+    }
 
     const p = { x: ctx.x, y: ctx.y, pressure: ctx.pressure };
     this.points.push(p);
@@ -57,6 +76,11 @@ export class BrushTool extends BaseTool {
   onPointerUp(e, ctx) {
     if (!this.isDrawing) return;
     this.isDrawing = false;
+
+    // End live real-time eraser composite session
+    if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.endLiveEraser) {
+      ctx.renderer.endLiveEraser();
+    }
 
     // Allow single click / tap dots
     if (this.points.length === 1) {
@@ -95,11 +119,17 @@ export class BrushTool extends BaseTool {
       }
 
       ctx.commandManager.execute(new DrawCommand(ctx.doc, ctx.activeLayer.id, elementsToCommit));
+    } else {
+      ctx.renderer.render();
     }
 
     this.points = [];
     this.symPoints = [];
     ctx.renderer.previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
+
+    if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.drawCursorRing) {
+      ctx.renderer.drawCursorRing(ctx.x, ctx.y, (ctx.toolState.size || 8) / 2);
+    }
   }
 
   renderPreview(previewCtx, ctx) {
@@ -118,6 +148,45 @@ export class BrushTool extends BaseTool {
       points: this.points
     };
 
+    if (this.mode === 'eraser') {
+      const tempMirror = (ctx.isSymmetry && this.symPoints.length >= 1) ? {
+        type: 'stroke',
+        tool: this.mode,
+        color: color,
+        size: ctx.toolState.size,
+        opacity: ctx.toolState.opacity,
+        usePressure,
+        points: this.symPoints
+      } : null;
+
+      // Real-time canvas erasure!
+      if (ctx.renderer && ctx.renderer.renderLiveEraser) {
+        ctx.renderer.renderLiveEraser(tempStroke, tempMirror);
+      }
+
+      // Draw high-visibility circular outline for the active eraser tip
+      const lastPt = this.points[this.points.length - 1];
+      const radius = (tempStroke.size || 8) / 2;
+
+      previewCtx.save();
+      previewCtx.beginPath();
+      previewCtx.arc(lastPt.x, lastPt.y, Math.max(1, radius), 0, Math.PI * 2);
+      previewCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      previewCtx.lineWidth = 1.5;
+      previewCtx.setLineDash([3, 3]);
+      previewCtx.stroke();
+
+      previewCtx.beginPath();
+      previewCtx.arc(lastPt.x, lastPt.y, Math.max(1, radius), 0, Math.PI * 2);
+      previewCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+      previewCtx.lineWidth = 1;
+      previewCtx.setLineDash([]);
+      previewCtx.stroke();
+      previewCtx.restore();
+      return;
+    }
+
+    // Additive tools (brush, pencil, neon, rainbow, highlighter)
     ctx.renderer.renderStroke(previewCtx, tempStroke);
 
     if (ctx.isSymmetry && this.symPoints.length >= 1) {
@@ -138,5 +207,15 @@ export class BrushTool extends BaseTool {
     this.isDrawing = false;
     this.points = [];
     this.symPoints = [];
+    if (this.currentRenderer) {
+      if (this.mode === 'eraser' && this.currentRenderer.endLiveEraser) {
+        this.currentRenderer.endLiveEraser();
+        this.currentRenderer.render();
+      }
+      if (this.currentRenderer.clearCursorRing) {
+        this.currentRenderer.clearCursorRing();
+      }
+      this.currentRenderer = null;
+    }
   }
 }

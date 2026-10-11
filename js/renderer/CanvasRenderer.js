@@ -24,6 +24,16 @@ export class CanvasRenderer {
     this.layerBuffer = document.createElement('canvas');
     this.layerCtx = this.layerBuffer.getContext('2d', { willReadFrequently: true });
 
+    // Live real-time eraser offscreen buffers
+    this.isLiveErasing = false;
+    this.targetLiveLayer = null;
+    this.liveBelowBuffer = null;
+    this.liveBelowCtx = null;
+    this.liveLayerBuffer = null;
+    this.liveLayerCtx = null;
+    this.liveAboveBuffer = null;
+    this.liveAboveCtx = null;
+
     // IMMEDIATELY initialize all canvas resolutions to match the document
     if (this.doc.width && this.doc.height) {
       this.resize(this.doc.width, this.doc.height);
@@ -34,6 +44,12 @@ export class CanvasRenderer {
     [this.paintCanvas, this.previewCanvas, this.gridCanvas, this.cursorCanvas, this.layerBuffer].forEach(cv => {
       cv.width = width;
       cv.height = height;
+    });
+    [this.liveBelowBuffer, this.liveLayerBuffer, this.liveAboveBuffer].forEach(cv => {
+      if (cv) {
+        cv.width = width;
+        cv.height = height;
+      }
     });
     this.render();
   }
@@ -112,6 +128,162 @@ export class CanvasRenderer {
       this.gridCtx.stroke();
     }
     this.gridCtx.restore();
+  }
+
+  /**
+   * Pre-renders layer partitions before an eraser drag begins.
+   * Caches underlying layers (and canvas background), target layer, and overlying layers.
+   */
+  beginLiveEraser(targetLayerId) {
+    this.isLiveErasing = true;
+    const width = this.doc.width;
+    const height = this.doc.height;
+
+    if (!this.liveBelowBuffer) {
+      this.liveBelowBuffer = document.createElement('canvas');
+      this.liveBelowCtx = this.liveBelowBuffer.getContext('2d');
+    }
+    if (!this.liveLayerBuffer) {
+      this.liveLayerBuffer = document.createElement('canvas');
+      this.liveLayerCtx = this.liveLayerBuffer.getContext('2d');
+    }
+    if (!this.liveAboveBuffer) {
+      this.liveAboveBuffer = document.createElement('canvas');
+      this.liveAboveCtx = this.liveAboveBuffer.getContext('2d');
+    }
+
+    [this.liveBelowBuffer, this.liveLayerBuffer, this.liveAboveBuffer].forEach(b => {
+      if (b.width !== width || b.height !== height) {
+        b.width = width;
+        b.height = height;
+      }
+    });
+
+    this.liveBelowCtx.clearRect(0, 0, width, height);
+    this.liveLayerCtx.clearRect(0, 0, width, height);
+    this.liveAboveCtx.clearRect(0, 0, width, height);
+
+    // 1. Draw Canvas Background into liveBelowBuffer
+    if (this.doc.backgroundColor !== 'transparent') {
+      this.liveBelowCtx.fillStyle = this.doc.backgroundColor;
+      this.liveBelowCtx.fillRect(0, 0, width, height);
+    }
+
+    // 2. Partition layers into below, target active layer, and above
+    let isBelow = true;
+    this.targetLiveLayer = null;
+
+    this.doc.layers.forEach(layer => {
+      if (!layer.visible) return;
+
+      if (layer.id === targetLayerId) {
+        isBelow = false;
+        this.targetLiveLayer = layer;
+        // Pre-render all existing elements and raster data of target layer into liveLayerBuffer
+        if (layer.rasterCanvas) {
+          this.liveLayerCtx.drawImage(layer.rasterCanvas, 0, 0);
+        }
+        if (layer.elements && layer.elements.length > 0) {
+          layer.elements.forEach(el => this.renderElement(this.liveLayerCtx, el));
+        }
+        return;
+      }
+
+      const destCtx = isBelow ? this.liveBelowCtx : this.liveAboveCtx;
+      this.layerCtx.clearRect(0, 0, width, height);
+      if (layer.rasterCanvas) {
+        this.layerCtx.drawImage(layer.rasterCanvas, 0, 0);
+      }
+      if (layer.elements && layer.elements.length > 0) {
+        layer.elements.forEach(el => this.renderElement(this.layerCtx, el));
+      }
+
+      destCtx.save();
+      destCtx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
+      destCtx.globalCompositeOperation = layer.blendMode || 'source-over';
+      destCtx.drawImage(this.layerBuffer, 0, 0);
+      destCtx.restore();
+    });
+  }
+
+  /**
+   * Renders the in-progress eraser stroke on the active layer in real-time,
+   * cutting out pixels instantaneously at 60-120 FPS.
+   */
+  renderLiveEraser(tempStroke, tempMirror = null) {
+    if (!this.isLiveErasing || !this.targetLiveLayer) return;
+    const width = this.doc.width;
+    const height = this.doc.height;
+
+    // 1. Copy the pristine layer snapshot into the layer working buffer
+    this.layerCtx.clearRect(0, 0, width, height);
+    this.layerCtx.drawImage(this.liveLayerBuffer, 0, 0);
+
+    // 2. Apply destination-out eraser stroke(s) live onto the working layer buffer
+    if (tempStroke) {
+      this.renderElement(this.layerCtx, tempStroke);
+    }
+    if (tempMirror) {
+      this.renderElement(this.layerCtx, tempMirror);
+    }
+
+    // 3. Composite onto master paintCanvas
+    this.paintCtx.clearRect(0, 0, width, height);
+    this.paintCtx.drawImage(this.liveBelowBuffer, 0, 0);
+
+    const layer = this.targetLiveLayer;
+    this.paintCtx.save();
+    this.paintCtx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
+    this.paintCtx.globalCompositeOperation = layer.blendMode || 'source-over';
+    this.paintCtx.drawImage(this.layerBuffer, 0, 0);
+    this.paintCtx.restore();
+
+    this.paintCtx.drawImage(this.liveAboveBuffer, 0, 0);
+
+    // 4. Grid overlay
+    this.drawGrid();
+  }
+
+  /**
+   * Ends the live eraser session.
+   */
+  endLiveEraser() {
+    this.isLiveErasing = false;
+    this.targetLiveLayer = null;
+  }
+
+  /**
+   * Draws a circular outline indicating the exact eraser or brush tip size.
+   */
+  drawCursorRing(x, y, radius) {
+    if (!this.cursorCtx) return;
+    this.cursorCtx.clearRect(0, 0, this.doc.width, this.doc.height);
+    if (x === null || y === null || radius <= 0) return;
+
+    this.cursorCtx.save();
+    this.cursorCtx.beginPath();
+    this.cursorCtx.arc(x, y, Math.max(1, radius), 0, Math.PI * 2);
+    this.cursorCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    this.cursorCtx.lineWidth = 1.5;
+    this.cursorCtx.setLineDash([3, 3]);
+    this.cursorCtx.stroke();
+
+    this.cursorCtx.beginPath();
+    this.cursorCtx.arc(x, y, Math.max(1, radius), 0, Math.PI * 2);
+    this.cursorCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+    this.cursorCtx.lineWidth = 1;
+    this.cursorCtx.setLineDash([]);
+    this.cursorCtx.stroke();
+    this.cursorCtx.restore();
+  }
+
+  /**
+   * Clears the cursor outline.
+   */
+  clearCursorRing() {
+    if (this.cursorCtx) {
+      this.cursorCtx.clearRect(0, 0, this.doc.width, this.doc.height);
+    }
   }
 
   renderElement(ctx, el) {
