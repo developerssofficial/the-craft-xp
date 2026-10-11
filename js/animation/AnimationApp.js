@@ -123,6 +123,7 @@ export class AnimationApp {
       animBgPreset.addEventListener('change', (e) => {
         const val = e.target.value;
         if (val === 'custom') {
+          animBgPreset.value = this.project.backgroundColor || '#ffffff';
           animBgCustomPicker?.click();
         } else {
           this.applyCanvasBackground(val, true);
@@ -417,28 +418,69 @@ export class AnimationApp {
     this.timelineUI?.updateActiveThumbnail();
     this.storage.scheduleAutosave();
 
-    // Auto-contrast brush protection for animation
-    const isDark = (hex) => {
-      if (!hex || hex === 'transparent') return false;
-      let c = hex.replace('#', '');
+    // High-precision visibility protection: prevent drawing with invisible or matching colors
+    const normalizeHex = (hex) => {
+      if (!hex || typeof hex !== 'string') return '';
+      let c = hex.trim().toLowerCase().replace('#', '');
       if (c.length === 3) c = c.split('').map(x => x + x).join('');
-      if (c.length !== 6) return false;
-      const r = parseInt(c.substr(0, 2), 16);
-      const g = parseInt(c.substr(2, 2), 16);
-      const b = parseInt(c.substr(4, 2), 16);
-      return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+      return c.length === 6 ? '#' + c : '';
     };
 
-    const activeColor = this.toolManager?.toolState?.color;
-    if (isDark(newBg)) {
-      if (isDark(activeColor)) {
-        events.emit('color:selected', { color: '#ffffff' });
-        events.emit('toast', { message: 'Switched brush to White for contrast against dark background' });
+    const getRgb = (hex) => {
+      const n = normalizeHex(hex);
+      if (!n) return null;
+      return {
+        r: parseInt(n.substr(1, 2), 16),
+        g: parseInt(n.substr(3, 2), 16),
+        b: parseInt(n.substr(5, 2), 16)
+      };
+    };
+
+    const getLuminance = (rgb) => {
+      if (!rgb) return 1.0;
+      const a = [rgb.r, rgb.g, rgb.b].map(v => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+    };
+
+    const getContrastRatio = (hex1, hex2) => {
+      const rgb1 = getRgb(hex1);
+      const rgb2 = getRgb(hex2);
+      if (!rgb1 || !rgb2) return 21;
+      const l1 = getLuminance(rgb1);
+      const l2 = getLuminance(rgb2);
+      const lighter = Math.max(l1, l2);
+      const darker = Math.min(l1, l2);
+      return (lighter + 0.05) / (darker + 0.05);
+    };
+
+    const activeColor = this.toolManager?.toolState?.color || '#18181b';
+    const normActive = normalizeHex(activeColor);
+
+    if (newBg === 'transparent') {
+      // On checkerboard transparent background, pure white strokes blend into the white squares
+      if (normActive === '#ffffff' || getLuminance(getRgb(normActive)) > 0.85) {
+        const safeColor = '#18181b';
+        if (this.toolManager?.toolState) this.toolManager.toolState.color = safeColor;
+        events.emit('color:selected', { color: safeColor });
+        events.emit('toast', { message: 'Switched brush to Charcoal Black for visibility on transparent canvas' });
       }
-    } else if (newBg !== 'transparent') {
-      if (activeColor === '#ffffff' || activeColor?.toLowerCase() === '#fff') {
-        events.emit('color:selected', { color: '#18181b' });
-        events.emit('toast', { message: 'Switched brush to Charcoal for contrast against light background' });
+    } else {
+      const normBg = normalizeHex(newBg);
+      const bgRgb = getRgb(normBg);
+      const bgLum = getLuminance(bgRgb);
+      const ratio = getContrastRatio(normActive, normBg);
+
+      // If contrast is under 1.8 (virtually or physically invisible, e.g. white on white or dark on dark)
+      if (ratio < 1.8) {
+        // High contrast replacement: Charcoal for light canvases, White for dark canvases
+        const safeColor = bgLum > 0.4 ? '#18181b' : '#ffffff';
+        if (this.toolManager?.toolState) this.toolManager.toolState.color = safeColor;
+        events.emit('color:selected', { color: safeColor });
+        const safeName = safeColor === '#ffffff' ? 'Pure White' : 'Charcoal Black';
+        events.emit('toast', { message: `Switched brush to ${safeName} for high contrast against background` });
       }
     }
 

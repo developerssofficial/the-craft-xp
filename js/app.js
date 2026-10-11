@@ -288,17 +288,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderer.render();
 
-    // Auto-contrast brush protection
-    const activeColor = toolManager.toolState.color;
-    if (isDarkColor(newBg)) {
-      if (isDarkColor(activeColor)) {
-        events.emit('color:selected', { color: '#ffffff' });
-        showToastNotification('Switched brush to White for contrast against dark background');
-      }
-    } else if (newBg !== 'transparent') {
-      if (activeColor === '#ffffff' || activeColor?.toLowerCase() === '#fff') {
+    // High-precision visibility protection: prevent drawing with invisible or matching colors
+    const normalizeHex = (hex) => {
+      if (!hex || typeof hex !== 'string') return '';
+      let c = hex.trim().toLowerCase().replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      return c.length === 6 ? '#' + c : '';
+    };
+
+    const getRgb = (hex) => {
+      const n = normalizeHex(hex);
+      if (!n) return null;
+      return {
+        r: parseInt(n.substr(1, 2), 16),
+        g: parseInt(n.substr(3, 2), 16),
+        b: parseInt(n.substr(5, 2), 16)
+      };
+    };
+
+    const getLuminance = (rgb) => {
+      if (!rgb) return 1.0;
+      const a = [rgb.r, rgb.g, rgb.b].map(v => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+    };
+
+    const getContrastRatio = (hex1, hex2) => {
+      const rgb1 = getRgb(hex1);
+      const rgb2 = getRgb(hex2);
+      if (!rgb1 || !rgb2) return 21;
+      const l1 = getLuminance(rgb1);
+      const l2 = getLuminance(rgb2);
+      const lighter = Math.max(l1, l2);
+      const darker = Math.min(l1, l2);
+      return (lighter + 0.05) / (darker + 0.05);
+    };
+
+    const activeColor = toolManager.toolState.color || '#18181b';
+    const normActive = normalizeHex(activeColor);
+
+    if (newBg === 'transparent') {
+      if (normActive === '#ffffff' || getLuminance(getRgb(normActive)) > 0.85) {
+        toolManager.toolState.color = '#18181b';
         events.emit('color:selected', { color: '#18181b' });
-        showToastNotification('Switched brush to Charcoal for contrast against light background');
+        showToastNotification('Switched brush to Charcoal Black for visibility on transparent canvas');
+      }
+    } else {
+      const normBg = normalizeHex(newBg);
+      const bgRgb = getRgb(normBg);
+      const bgLum = getLuminance(bgRgb);
+      const ratio = getContrastRatio(normActive, normBg);
+
+      if (ratio < 1.8) {
+        const safeColor = bgLum > 0.4 ? '#18181b' : '#ffffff';
+        toolManager.toolState.color = safeColor;
+        events.emit('color:selected', { color: safeColor });
+        const safeName = safeColor === '#ffffff' ? 'Pure White' : 'Charcoal Black';
+        showToastNotification(`Switched brush to ${safeName} for high contrast against background`);
       }
     }
 
@@ -312,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bgPreset.addEventListener('change', (e) => {
       const val = e.target.value;
       if (val === 'custom') {
+        bgPreset.value = doc.backgroundColor || '#ffffff';
         bgCustomPicker?.click();
       } else {
         applyCanvasBackground(val, true);
