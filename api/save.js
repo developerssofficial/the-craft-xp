@@ -1,4 +1,9 @@
+import dns from 'dns';
 import { MongoClient } from 'mongodb';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
