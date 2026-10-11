@@ -91,7 +91,13 @@ export class FillTool extends BaseTool {
     const cData = compData.data;
     const queue = [[startX, startY]];
     const visited = new Uint8Array(width * height);
-    const tolerance = 32;
+    const fillMask = new Uint8Array(width * height);
+    const tolerance = 36;
+
+    let minX = startX;
+    let maxX = startX;
+    let minY = startY;
+    let maxY = startY;
 
     while (queue.length > 0) {
       const [x, y] = queue.pop();
@@ -108,16 +114,90 @@ export class FillTool extends BaseTool {
       const ca = cData[pIdx + 3];
 
       if (this.colorMatch(cr, cg, cb, ca, tr, tg, tb, ta, tolerance)) {
+        fillMask[idx] = 1;
         lData[pIdx] = fill.r;
         lData[pIdx + 1] = fill.g;
         lData[pIdx + 2] = fill.b;
         lData[pIdx + 3] = fill.a;
+
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
 
         if (x > 0 && !visited[idx - 1]) queue.push([x - 1, y]);
         if (x < width - 1 && !visited[idx + 1]) queue.push([x + 1, y]);
         if (y > 0 && !visited[idx - width]) queue.push([x, y - 1]);
         if (y < height - 1 && !visited[idx + width]) queue.push([x, y + 1]);
       }
+    }
+
+    // Expand / Bleed fill by 2 pixels (Dilation) into surrounding outline stroke
+    // This completely eliminates white borders, halos, and uncolored fringes
+    this.expandFill(lData, fillMask, width, height, fill, minX, maxX, minY, maxY, 2);
+  }
+
+  /**
+   * Expands the filled region by `radius` pixels outwards into neighboring pixels.
+   * Since rasterCanvas sits underneath vector strokes, this bleed neatly hides beneath
+   * the stroke borders, resulting in a gap-free, professional fill.
+   */
+  expandFill(lData, fillMask, width, height, fill, minX, maxX, minY, maxY, radius = 2) {
+    let currentBoundary = [];
+    const boundMinX = Math.max(0, minX - 1);
+    const boundMaxX = Math.min(width - 1, maxX + 1);
+    const boundMinY = Math.max(0, minY - 1);
+    const boundMaxY = Math.min(height - 1, maxY + 1);
+
+    for (let y = boundMinY; y <= boundMaxY; y++) {
+      const yOffset = y * width;
+      for (let x = boundMinX; x <= boundMaxX; x++) {
+        const idx = yOffset + x;
+        if (!fillMask[idx]) continue;
+
+        if (
+          (x > 0 && !fillMask[idx - 1]) ||
+          (x < width - 1 && !fillMask[idx + 1]) ||
+          (y > 0 && !fillMask[idx - width]) ||
+          (y < height - 1 && !fillMask[idx + width])
+        ) {
+          currentBoundary.push(idx);
+        }
+      }
+    }
+
+    for (let step = 0; step < radius; step++) {
+      const nextBoundary = [];
+      for (let i = 0; i < currentBoundary.length; i++) {
+        const idx = currentBoundary[i];
+        const x = idx % width;
+        const y = Math.floor(idx / width);
+
+        const neighbors = [
+          [x - 1, y],
+          [x + 1, y],
+          [x, y - 1],
+          [x, y + 1]
+        ];
+
+        for (let j = 0; j < 4; j++) {
+          const [nx, ny] = neighbors[j];
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            const nIdx = ny * width + nx;
+            if (!fillMask[nIdx]) {
+              fillMask[nIdx] = 1;
+              const pIdx = nIdx * 4;
+              lData[pIdx] = fill.r;
+              lData[pIdx + 1] = fill.g;
+              lData[pIdx + 2] = fill.b;
+              lData[pIdx + 3] = fill.a;
+              nextBoundary.push(nIdx);
+            }
+          }
+        }
+      }
+      currentBoundary = nextBoundary;
+      if (currentBoundary.length === 0) break;
     }
   }
 
