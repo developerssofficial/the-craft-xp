@@ -113,6 +113,15 @@ export class StorageService {
         req.onerror = (e) => reject(e.target.error);
       });
 
+      // Also sync to cloud MongoDB Atlas in the background
+      try {
+        fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record)
+        }).catch(() => {});
+      } catch (e) {}
+
       this.updateStatusBadge('saved');
     } catch (err) {
       console.error('[StorageService] Autosave failed:', err);
@@ -123,6 +132,20 @@ export class StorageService {
   }
 
   async loadSession() {
+    // 1. Try loading from MongoDB Atlas Cloud first
+    try {
+      const cloudRes = await fetch('/api/load');
+      if (cloudRes.ok) {
+        const cloudRecord = await cloudRes.json();
+        if (cloudRecord && cloudRecord.layers && cloudRecord.layers.length > 0) {
+          console.log('[StorageService] Successfully loaded project from MongoDB Atlas Cloud.');
+          return cloudRecord;
+        }
+      }
+    } catch (e) {
+      // Cloud load not available, continue to local IndexedDB
+    }
+
     if (!this.db) {
       await this.initDB();
     }

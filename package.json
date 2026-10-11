@@ -1,0 +1,24 @@
+{
+  "name": "the-craft-xp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/developerssofficial/the-craft-xp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/developerssofficial/the-craft-xp/issues"
+  },
+  "homepage": "https://github.com/developerssofficial/the-craft-xp#readme",
+  "dependencies": {
+    "mongodb": "^7.7.0"
+  }
+}
