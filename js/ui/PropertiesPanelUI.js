@@ -168,6 +168,10 @@ export class PropertiesPanelUI {
       });
     }
 
+    if (color.toLowerCase() === '#ffffff' && this.toolManager?.ctx?.doc?.backgroundColor === '#ffffff') {
+      events.emit('toast', { message: 'Pure White brush selected (Ambient contrast active on white canvas)' });
+    }
+
     this.updatePreviewDot();
   }
 

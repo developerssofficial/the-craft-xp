@@ -1061,5 +1061,6 @@ export class AnimationApp {
 // Bootstrap on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   const app = new AnimationApp();
+  window.animationApp = app;
   app.init().catch(err => console.error('[AnimationApp] Boot error:', err));
 });
