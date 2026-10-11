@@ -90,7 +90,7 @@ export class AnimationApp {
     this.doc = new Document({
       width: this.project.width,
       height: this.project.height,
-      backgroundColor: 'transparent',
+      backgroundColor: this.project.backgroundColor || '#ffffff',
       layers: currentFrame.layers,
       activeLayerId: currentFrame.activeLayerId
     });
@@ -122,8 +122,8 @@ export class AnimationApp {
     if (animBgPreset) {
       animBgPreset.addEventListener('change', (e) => {
         const val = e.target.value;
-        if (val === 'custom') {
-          animBgPreset.value = this.project.backgroundColor || '#ffffff';
+        const selectedOpt = animBgPreset.selectedOptions[0];
+        if (val === 'custom' || selectedOpt?.dataset?.custom === 'true') {
           animBgCustomPicker?.click();
         } else {
           this.applyCanvasBackground(val, true);
@@ -356,7 +356,7 @@ export class AnimationApp {
 
   applyCanvasBackground(newBg, showToast = true) {
     this.project.backgroundColor = newBg;
-    this.doc.backgroundColor = 'transparent';
+    this.doc.backgroundColor = newBg;
 
     const canvasBoard = document.getElementById('canvasBoard');
     const animBgSwatchDot = document.getElementById('animBgSwatchDot');
@@ -383,31 +383,35 @@ export class AnimationApp {
       }
     }
 
-    if (animBgPreset) {
-      let matched = false;
-      for (const opt of animBgPreset.options) {
-        if (opt.value === newBg) {
-          animBgPreset.value = newBg;
-          matched = true;
-          break;
+    const syncThreeOptionPreset = (selectEl) => {
+      if (!selectEl) return;
+      let customOpt = selectEl.querySelector('option[value="custom"]') || selectEl.querySelector('option[data-custom="true"]');
+      if (newBg === '#ffffff') {
+        selectEl.value = '#ffffff';
+        if (customOpt) {
+          customOpt.value = 'custom';
+          customOpt.textContent = 'Custom Color...';
+          delete customOpt.dataset.custom;
         }
-      }
-      if (!matched && newBg !== 'transparent') {
-        let customOpt = animBgPreset.querySelector('option[data-custom="true"]');
-        if (!customOpt) {
-          customOpt = document.createElement('option');
+      } else if (newBg === 'transparent') {
+        selectEl.value = 'transparent';
+        if (customOpt) {
+          customOpt.value = 'custom';
+          customOpt.textContent = 'Custom Color...';
+          delete customOpt.dataset.custom;
+        }
+      } else {
+        if (customOpt) {
+          customOpt.value = newBg;
           customOpt.dataset.custom = "true";
-          animBgPreset.appendChild(customOpt);
+          customOpt.textContent = `Custom (${newBg.toUpperCase()})`;
+          selectEl.value = newBg;
         }
-        customOpt.value = newBg;
-        customOpt.textContent = `Custom (${newBg.toUpperCase()})`;
-        animBgPreset.value = newBg;
       }
-    }
+    };
 
-    if (settingsBgPreset) {
-      settingsBgPreset.value = newBg;
-    }
+    syncThreeOptionPreset(animBgPreset);
+    syncThreeOptionPreset(settingsBgPreset);
 
     if (animBgCustomPicker && newBg !== 'transparent' && newBg.startsWith('#')) {
       animBgCustomPicker.value = newBg;
@@ -710,7 +714,7 @@ export class AnimationApp {
 
         this.doc.width = newW;
         this.doc.height = newH;
-        this.doc.backgroundColor = 'transparent';
+        this.doc.backgroundColor = newBg;
 
         const canvasBoard = document.getElementById('canvasBoard');
         if (canvasBoard) {
@@ -847,7 +851,7 @@ export class AnimationApp {
         this.storage.project = this.project;
         this.doc.width = this.project.width;
         this.doc.height = this.project.height;
-        this.doc.backgroundColor = 'transparent';
+        this.doc.backgroundColor = this.project.backgroundColor || '#ffffff';
 
         const canvasBoard = document.getElementById('canvasBoard');
         if (canvasBoard) {
@@ -885,7 +889,7 @@ export class AnimationApp {
 
         this.doc.width = this.project.width;
         this.doc.height = this.project.height;
-        this.doc.backgroundColor = 'transparent';
+        this.doc.backgroundColor = '#ffffff';
 
         const canvasBoard = document.getElementById('canvasBoard');
         if (canvasBoard) {

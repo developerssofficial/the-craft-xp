@@ -83,7 +83,7 @@
 
 .canvas-stage.animation-stage #paintCanvas {
   z-index: 2;
-  background-color: transparent !important;
+  background-color: transparent;
 }
 
 .canvas-stage.animation-stage #onionCanvas {

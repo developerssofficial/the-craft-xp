@@ -260,27 +260,34 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    if (bgPreset) {
-      let matched = false;
-      for (const opt of bgPreset.options) {
-        if (opt.value === newBg) {
-          bgPreset.value = newBg;
-          matched = true;
-          break;
+    const syncThreeOptionPreset = (selectEl) => {
+      if (!selectEl) return;
+      let customOpt = selectEl.querySelector('option[value="custom"]') || selectEl.querySelector('option[data-custom="true"]');
+      if (newBg === '#ffffff') {
+        selectEl.value = '#ffffff';
+        if (customOpt) {
+          customOpt.value = 'custom';
+          customOpt.textContent = 'Custom Color...';
+          delete customOpt.dataset.custom;
         }
-      }
-      if (!matched && newBg !== 'transparent') {
-        let customOpt = bgPreset.querySelector('option[data-custom="true"]');
-        if (!customOpt) {
-          customOpt = document.createElement('option');
+      } else if (newBg === 'transparent') {
+        selectEl.value = 'transparent';
+        if (customOpt) {
+          customOpt.value = 'custom';
+          customOpt.textContent = 'Custom Color...';
+          delete customOpt.dataset.custom;
+        }
+      } else {
+        if (customOpt) {
+          customOpt.value = newBg;
           customOpt.dataset.custom = "true";
-          bgPreset.appendChild(customOpt);
+          customOpt.textContent = `Custom (${newBg.toUpperCase()})`;
+          selectEl.value = newBg;
         }
-        customOpt.value = newBg;
-        customOpt.textContent = `Custom (${newBg.toUpperCase()})`;
-        bgPreset.value = newBg;
       }
-    }
+    };
+
+    syncThreeOptionPreset(bgPreset);
 
     if (bgCustomPicker && newBg !== 'transparent' && newBg.startsWith('#')) {
       bgCustomPicker.value = newBg;
@@ -359,8 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bgPreset) {
     bgPreset.addEventListener('change', (e) => {
       const val = e.target.value;
-      if (val === 'custom') {
-        bgPreset.value = doc.backgroundColor || '#ffffff';
+      const selectedOpt = bgPreset.selectedOptions[0];
+      if (val === 'custom' || selectedOpt?.dataset?.custom === 'true') {
         bgCustomPicker?.click();
       } else {
         applyCanvasBackground(val, true);
