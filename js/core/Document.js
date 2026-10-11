@@ -10,7 +10,7 @@ export class Document {
     this.version = 1;
     this.width = options.width || window.innerWidth;
     this.height = options.height || (window.innerHeight - 56);
-    this.backgroundColor = options.backgroundColor || '#0f1117';
+    this.backgroundColor = options.backgroundColor || '#ffffff';
     this.layers = [];
     this.activeLayerId = null;
     this.nextLayerNumber = 1;

@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const doc = new Document({
     width: viewport.clientWidth || window.innerWidth,
     height: viewport.clientHeight || (window.innerHeight - 56),
-    backgroundColor: '#0f1117'
+    backgroundColor: '#ffffff'
   });
 
   const commandManager = new CommandManager(50);
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initial background setup
-  applyCanvasBackground(doc.backgroundColor || '#0f1117', false);
+  applyCanvasBackground(doc.backgroundColor || '#ffffff', false);
 
   // Grid Toggle
   gridToggleBtn.addEventListener('click', () => {
@@ -545,7 +545,11 @@ document.addEventListener('DOMContentLoaded', () => {
       isRestoringSession = true;
       const session = await storageService.loadSession();
       if (session && session.layers && session.layers.length > 0) {
-        doc.backgroundColor = session.backgroundColor || '#0f1117';
+        // Migrate old default dark background (#0f1117) to pure white (#ffffff)
+        if (session.backgroundColor === '#0f1117' || !session.backgroundColor) {
+          session.backgroundColor = '#ffffff';
+        }
+        doc.backgroundColor = session.backgroundColor || '#ffffff';
         doc.nextLayerNumber = session.nextLayerNumber || (session.layers.length + 1);
 
         const restoredLayers = [];
@@ -581,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (session.settings.pressureDynamics !== undefined) toolManager.toolState.pressureDynamics = session.settings.pressureDynamics;
         }
 
-        applyCanvasBackground(doc.backgroundColor || '#0f1117', false);
+        applyCanvasBackground(doc.backgroundColor || '#ffffff', false);
 
         renderer.render();
         events.emit('document:changed');
@@ -597,4 +601,5 @@ document.addEventListener('DOMContentLoaded', () => {
       isRestoringSession = false;
     }
   })();
+  window.app = { doc, renderer, toolManager, commandManager, applyCanvasBackground };
 });

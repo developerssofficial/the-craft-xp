@@ -83,7 +83,7 @@ export class ProjectManager {
       }
 
       // Reconstruct document
-      this.doc.backgroundColor = data.backgroundColor || '#0f1117';
+      this.doc.backgroundColor = data.backgroundColor || '#ffffff';
       this.doc.nextLayerNumber = data.nextLayerNumber || (data.layers.length + 1);
 
       // Reconstruct layers
