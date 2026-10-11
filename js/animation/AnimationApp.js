@@ -90,7 +90,7 @@ export class AnimationApp {
     this.doc = new Document({
       width: this.project.width,
       height: this.project.height,
-      backgroundColor: this.project.backgroundColor,
+      backgroundColor: 'transparent',
       layers: currentFrame.layers,
       activeLayerId: currentFrame.activeLayerId
     });
@@ -127,7 +127,7 @@ export class AnimationApp {
       animBgPreset.addEventListener('change', (e) => {
         const newBg = e.target.value;
         this.project.backgroundColor = newBg;
-        this.doc.backgroundColor = newBg;
+        this.doc.backgroundColor = 'transparent';
         canvasBoard.style.backgroundColor = newBg;
         this.renderer.render();
         this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
@@ -569,7 +569,7 @@ export class AnimationApp {
 
         this.doc.width = newW;
         this.doc.height = newH;
-        this.doc.backgroundColor = newBg;
+        this.doc.backgroundColor = 'transparent';
 
         const canvasBoard = document.getElementById('canvasBoard');
         if (canvasBoard) {
@@ -710,7 +710,7 @@ export class AnimationApp {
         this.storage.project = this.project;
         this.doc.width = this.project.width;
         this.doc.height = this.project.height;
-        this.doc.backgroundColor = this.project.backgroundColor;
+        this.doc.backgroundColor = 'transparent';
 
         const canvasBoard = document.getElementById('canvasBoard');
         if (canvasBoard) {
@@ -752,7 +752,7 @@ export class AnimationApp {
 
         this.doc.width = this.project.width;
         this.doc.height = this.project.height;
-        this.doc.backgroundColor = this.project.backgroundColor;
+        this.doc.backgroundColor = 'transparent';
 
         const canvasBoard = document.getElementById('canvasBoard');
         if (canvasBoard) {

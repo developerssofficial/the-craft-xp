@@ -14,7 +14,7 @@ export class OnionSkinRenderer {
     this.enabled = true;
     this.prevFramesCount = 2; // 0 to 5
     this.nextFramesCount = 1; // 0 to 5
-    this.baseOpacity = 0.35;   // 0.05 to 0.8
+    this.baseOpacity = 0.40;   // 0.05 to 0.8
     this.tintMode = 'original';  // 'original' (natural colors at low opacity), 'color' (past red/future cyan), or 'grayscale'
 
     // Solid tint colors for source-in blending (prevents double opacity multiplication)
@@ -47,9 +47,22 @@ export class OnionSkinRenderer {
     if (!this.enabled || isPlaying) return;
 
     const frames = this.project.frames;
-    const width = this.canvas.width;
-    const height = this.canvas.height;
+    const width = this.canvas.width || this.project.width || 1280;
+    const height = this.canvas.height || this.project.height || 720;
     if (frames.length <= 1) return;
+
+    if (this.canvas.width !== width || this.canvas.height !== height) {
+      this.canvas.width = width;
+      this.canvas.height = height;
+    }
+    if (this.tempFrameCanvas.width !== width || this.tempFrameCanvas.height !== height) {
+      this.tempFrameCanvas.width = width;
+      this.tempFrameCanvas.height = height;
+    }
+    if (this.tintCanvas.width !== width || this.tintCanvas.height !== height) {
+      this.tintCanvas.width = width;
+      this.tintCanvas.height = height;
+    }
 
     // 1. Render Previous Frames (Past)
     if (this.prevFramesCount > 0) {

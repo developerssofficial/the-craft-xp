@@ -81,23 +81,23 @@
   pointer-events: none;
 }
 
-.canvas-stage.animation-stage #onionCanvas {
-  z-index: 2;
-  pointer-events: none;
-}
-
 .canvas-stage.animation-stage #paintCanvas {
-  z-index: 3;
-  background-color: transparent;
+  z-index: 2;
+  background-color: transparent !important;
 }
 
-.canvas-stage.animation-stage #previewCanvas {
+.canvas-stage.animation-stage #onionCanvas {
   z-index: 4;
   pointer-events: none;
 }
 
-.canvas-stage.animation-stage #cursorCanvas {
+.canvas-stage.animation-stage #previewCanvas {
   z-index: 5;
+  pointer-events: none;
+}
+
+.canvas-stage.animation-stage #cursorCanvas {
+  z-index: 6;
   pointer-events: none;
 }
 
