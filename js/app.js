@@ -338,24 +338,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeColor = toolManager.toolState.color || '#18181b';
     const normActive = normalizeHex(activeColor);
 
-    if (newBg === 'transparent') {
-      if (normActive === '#ffffff' || getLuminance(getRgb(normActive)) > 0.85) {
-        toolManager.toolState.color = '#18181b';
-        events.emit('color:selected', { color: '#18181b' });
-        showToastNotification('Switched brush to Charcoal Black for visibility on transparent canvas');
-      }
-    } else {
+    // Never mutate user's brush color based on canvas background!
+    // If contrast is poor, only show a warning notification. The decision stays with the user.
+    if (newBg !== 'transparent') {
       const normBg = normalizeHex(newBg);
-      const bgRgb = getRgb(normBg);
-      const bgLum = getLuminance(bgRgb);
       const ratio = getContrastRatio(normActive, normBg);
-
-      if (ratio < 1.8) {
-        const safeColor = bgLum > 0.4 ? '#18181b' : '#ffffff';
-        toolManager.toolState.color = safeColor;
-        events.emit('color:selected', { color: safeColor });
-        const safeName = safeColor === '#ffffff' ? 'Pure White' : 'Charcoal Black';
-        showToastNotification(`Switched brush to ${safeName} for high contrast against background`);
+      if (ratio < 1.35 || normActive === normBg) {
+        showToastNotification('এই রঙ কাগজের সাথে মিলে যাচ্ছে।', 'warning');
       }
     }
 

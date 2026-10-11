@@ -398,8 +398,6 @@ export class CanvasRenderer {
     const baseSize = el.tool === 'pencil' ? 1.5 : (el.size || 8);
     ctx.lineWidth = baseSize;
 
-    const conflict = this.isContrastConflict(el.color);
-
     if (el.tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -410,47 +408,22 @@ export class CanvasRenderer {
       ctx.strokeStyle = el.color;
       ctx.fillStyle = el.color;
       ctx.lineCap = 'square';
-      if (conflict) {
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.40)';
-        ctx.shadowBlur = 3;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 1;
-      }
+      ctx.shadowBlur = 0;
     } else if (el.tool === 'neon') {
+      // Glow (G) Tool: Pure neon glow using true stroke color
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;
       ctx.fillStyle = el.color;
       ctx.shadowBlur = baseSize * 2;
-      ctx.shadowColor = conflict ? 'rgba(99, 102, 241, 0.85)' : el.color;
+      ctx.shadowColor = el.color;
     } else {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;
       ctx.fillStyle = el.color;
-
-      // PASS 1 (Contrast outline): If white on white or matching, render a distinct crisp border underneath
-      if (conflict) {
-        const isLightBg = this.getBgLuminance() > 0.5;
-        const outlineColor = isLightBg ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.70)';
-        const outlineWidth = baseSize + Math.max(4, Math.round(baseSize * 0.3));
-
-        ctx.save();
-        ctx.lineWidth = outlineWidth;
-        ctx.strokeStyle = outlineColor;
-        ctx.fillStyle = outlineColor;
-        this.drawPath(ctx, el.points, outlineWidth);
-        ctx.restore();
-
-        // Also add soft ambient shadow for 3D embossed look
-        ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.50)';
-        ctx.shadowBlur = Math.max(3, baseSize * 0.4);
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 1;
-      } else {
-        ctx.shadowBlur = 0;
-      }
+      ctx.shadowBlur = 0;
     }
 
-    // PASS 2: Render the actual stroke in genuine element color
+    // Render the genuine stroke in true color with no artificial halo or underlay
     this.drawPath(ctx, el.points, baseSize);
 
     ctx.restore();
@@ -459,12 +432,7 @@ export class CanvasRenderer {
   renderSpray(ctx, el) {
     if (!el.drops || el.drops.length === 0) return;
     ctx.fillStyle = el.color;
-    if (this.isContrastConflict(el.color)) {
-      const isLightBg = this.getBgLuminance() > 0.5;
-      ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)';
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetY = 1;
-    }
+    ctx.shadowBlur = 0;
     el.drops.forEach(d => {
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.radius || 1, 0, Math.PI * 2);
@@ -478,16 +446,7 @@ export class CanvasRenderer {
     ctx.fillStyle = el.color;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    if (this.isContrastConflict(el.color)) {
-      const isLightBg = this.getBgLuminance() > 0.5;
-      ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)';
-      ctx.shadowBlur = Math.max(3, (el.size || 4) * 0.45);
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 1;
-    } else {
-      ctx.shadowBlur = 0;
-    }
+    ctx.shadowBlur = 0;
 
     const { x, y, width, height, shapeType, fill } = el;
 
@@ -586,13 +545,7 @@ export class CanvasRenderer {
     ctx.font = `${el.fontWeight || '600'} ${el.fontSize || 32}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.fillStyle = el.color;
     ctx.textBaseline = 'top';
-
-    if (this.isContrastConflict(el.color)) {
-      const isLightBg = this.getBgLuminance() > 0.5;
-      ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)';
-      ctx.shadowBlur = 3;
-      ctx.shadowOffsetY = 1;
-    }
+    ctx.shadowBlur = 0;
 
     const lines = (el.text || '').split('\n');
     const lineHeight = (el.fontSize || 32) * 1.25;

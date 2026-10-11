@@ -168,8 +168,9 @@ export class PropertiesPanelUI {
       });
     }
 
-    if (color.toLowerCase() === '#ffffff' && this.toolManager?.ctx?.doc?.backgroundColor === '#ffffff') {
-      events.emit('toast', { message: 'Pure White brush selected (Ambient contrast active on white canvas)' });
+    const bg = this.toolManager?.ctx?.doc?.backgroundColor;
+    if (bg && bg !== 'transparent' && color.toLowerCase() === bg.toLowerCase()) {
+      events.emit('toast', { message: 'এই রঙ কাগজের সাথে মিলে যাচ্ছে।', type: 'warning' });
     }
 
     this.updatePreviewDot();
