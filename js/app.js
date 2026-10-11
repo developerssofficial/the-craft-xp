@@ -123,6 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
       swatchButtons: document.querySelectorAll('.swatch-btn'),
       nativeColorPicker: document.getElementById('nativeColorPicker'),
       bottomColorPicker: document.getElementById('bottomColorPicker'),
+      headerColorPicker: document.getElementById('headerColorPicker'),
+      headerColorIndicator: document.getElementById('headerColorIndicator'),
       activeColorSwatch: document.getElementById('activeColorSwatch'),
       hexCodeBadge: document.getElementById('hexCodeBadge'),
       brushDotPreview: document.getElementById('brushDotPreview'),

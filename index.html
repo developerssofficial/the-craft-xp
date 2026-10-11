@@ -88,11 +88,16 @@
           <span>Zen Mode</span>
         </button>
       </div>
-    </div>
 
-    <!-- Right Controls: Background, Import, Export -->
-    <div class="header-right">
-      <!-- Background Theme Selector -->
+      <div class="header-separator"></div>
+
+      <!-- Quick Header Color Picker -->
+      <div class="header-color-picker-wrap" title="Active Brush Color — Click to choose ANY color">
+        <input type="color" id="headerColorPicker" value="#18181b">
+        <label for="headerColorPicker" class="header-color-indicator" id="headerColorIndicator" style="background-color: #18181b;"></label>
+      </div>
+
+      <!-- Quick Canvas Background Selector -->
       <div class="bg-selector" title="Canvas Background Theme & Color">
         <span class="bg-swatch-dot" id="bgSwatchDot" title="Current Background Color"></span>
         <select id="bgPreset" title="Select Canvas Background Theme">
@@ -100,14 +105,15 @@
           <option value="transparent">Transparent (PNG)</option>
           <option value="custom">Custom Color...</option>
         </select>
-        <input type="color" id="bgCustomPicker" style="display:none;" value="#18181b">
+        <input type="color" id="bgCustomPicker" style="display:none;" value="#ffffff">
         <label for="bgCustomPicker" class="bg-custom-btn" title="Pick Any Custom Background Color">
           <i class="fa-solid fa-palette"></i>
         </label>
       </div>
+    </div>
 
-      <div class="header-separator"></div>
-
+    <!-- Right Controls: Background, Import, Export -->
+    <div class="header-right">
       <!-- Autosave Badge Indicator -->
       <span id="saveStatusBadge" class="save-status-badge saved" title="Automatic IndexedDB session persistence">Autosaved</span>
 
