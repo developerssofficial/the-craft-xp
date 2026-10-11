@@ -221,11 +221,115 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Background Preset
-  bgPreset.addEventListener('change', (e) => {
-    doc.backgroundColor = e.target.value;
+  // ==========================================
+  // Background Preset & Custom Color Selector
+  // ==========================================
+  const bgSwatchDot = document.getElementById('bgSwatchDot');
+  const bgCustomPicker = document.getElementById('bgCustomPicker');
+
+  const isDarkColor = (hex) => {
+    if (!hex || hex === 'transparent') return false;
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    if (c.length !== 6) return false;
+    const r = parseInt(c.substr(0, 2), 16);
+    const g = parseInt(c.substr(2, 2), 16);
+    const b = parseInt(c.substr(4, 2), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  };
+
+  const applyCanvasBackground = (newBg, showToast = true) => {
+    doc.backgroundColor = newBg;
+
+    if (newBg === 'transparent') {
+      canvasBoard?.classList.add('transparent-canvas');
+      if (canvasBoard) canvasBoard.style.backgroundColor = 'transparent';
+      if (bgSwatchDot) {
+        bgSwatchDot.classList.add('checkerboard');
+        bgSwatchDot.style.backgroundColor = '';
+      }
+    } else {
+      canvasBoard?.classList.remove('transparent-canvas');
+      if (canvasBoard) {
+        canvasBoard.style.backgroundColor = newBg;
+        canvasBoard.style.backgroundImage = 'none';
+      }
+      if (bgSwatchDot) {
+        bgSwatchDot.classList.remove('checkerboard');
+        bgSwatchDot.style.backgroundColor = newBg;
+      }
+    }
+
+    if (bgPreset) {
+      let matched = false;
+      for (const opt of bgPreset.options) {
+        if (opt.value === newBg) {
+          bgPreset.value = newBg;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched && newBg !== 'transparent') {
+        let customOpt = bgPreset.querySelector('option[data-custom="true"]');
+        if (!customOpt) {
+          customOpt = document.createElement('option');
+          customOpt.dataset.custom = "true";
+          bgPreset.appendChild(customOpt);
+        }
+        customOpt.value = newBg;
+        customOpt.textContent = `Custom (${newBg.toUpperCase()})`;
+        bgPreset.value = newBg;
+      }
+    }
+
+    if (bgCustomPicker && newBg !== 'transparent' && newBg.startsWith('#')) {
+      bgCustomPicker.value = newBg;
+    }
+
     renderer.render();
-  });
+
+    // Auto-contrast brush protection
+    const activeColor = toolManager.toolState.color;
+    if (isDarkColor(newBg)) {
+      if (isDarkColor(activeColor)) {
+        events.emit('color:selected', { color: '#ffffff' });
+        showToastNotification('Switched brush to White for contrast against dark background');
+      }
+    } else if (newBg !== 'transparent') {
+      if (activeColor === '#ffffff' || activeColor?.toLowerCase() === '#fff') {
+        events.emit('color:selected', { color: '#18181b' });
+        showToastNotification('Switched brush to Charcoal for contrast against light background');
+      }
+    }
+
+    if (showToast) {
+      const label = newBg === 'transparent' ? 'Transparent (PNG)' : newBg.toUpperCase();
+      showToastNotification(`Canvas Background: ${label}`);
+    }
+  };
+
+  if (bgPreset) {
+    bgPreset.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'custom') {
+        bgCustomPicker?.click();
+      } else {
+        applyCanvasBackground(val, true);
+      }
+    });
+  }
+
+  if (bgCustomPicker) {
+    bgCustomPicker.addEventListener('input', (e) => {
+      applyCanvasBackground(e.target.value, false);
+    });
+    bgCustomPicker.addEventListener('change', (e) => {
+      applyCanvasBackground(e.target.value, true);
+    });
+  }
+
+  // Initial background setup
+  applyCanvasBackground(doc.backgroundColor || '#0f1117', false);
 
   // Grid Toggle
   gridToggleBtn.addEventListener('click', () => {
@@ -421,9 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (session.settings.pressureDynamics !== undefined) toolManager.toolState.pressureDynamics = session.settings.pressureDynamics;
         }
 
-        if (bgPreset) {
-          bgPreset.value = doc.backgroundColor;
-        }
+        applyCanvasBackground(doc.backgroundColor || '#0f1117', false);
 
         renderer.render();
         events.emit('document:changed');

@@ -98,16 +98,21 @@
       </div>
 
       <!-- Quick Canvas Background Selector -->
-      <div class="bg-selector" title="Canvas Background Color">
-        <i class="fa-solid fa-fill"></i>
-        <select id="animBgPreset">
-          <option value="#ffffff" selected>White Canvas</option>
+      <div class="bg-selector" title="Canvas Background Theme & Color">
+        <span class="bg-swatch-dot" id="animBgSwatchDot" title="Current Background Color"></span>
+        <select id="animBgPreset" title="Select Canvas Background Theme">
+          <option value="#ffffff" selected>Pure White</option>
           <option value="#0f1117">Dark Studio</option>
-          <option value="#1e1e2e">Deep Indigo</option>
-          <option value="#f8fafc">Light Slate</option>
-          <option value="#18181b">Onyx Dark</option>
-          <option value="transparent">Transparent</option>
+          <option value="#faf7f2">Warm Parchment</option>
+          <option value="#f1f5f9">Cool Slate</option>
+          <option value="#0f172a">Deep Midnight</option>
+          <option value="transparent">Transparent (PNG)</option>
+          <option value="custom">Custom Color...</option>
         </select>
+        <input type="color" id="animBgCustomPicker" style="display:none;" value="#ffffff">
+        <label for="animBgCustomPicker" class="bg-custom-btn" title="Pick Any Custom Background Color">
+          <i class="fa-solid fa-palette"></i>
+        </label>
       </div>
     </div>
 
@@ -508,9 +513,9 @@
             <select id="settingsBgPreset">
               <option value="#ffffff" selected>Pure White (#ffffff)</option>
               <option value="#0f1117">Dark Studio (#0f1117)</option>
-              <option value="#1e1e2e">Deep Indigo</option>
-              <option value="#f8fafc">Light Slate</option>
-              <option value="#18181b">Onyx Dark</option>
+              <option value="#faf7f2">Warm Parchment (#faf7f2)</option>
+              <option value="#f1f5f9">Cool Slate (#f1f5f9)</option>
+              <option value="#0f172a">Deep Midnight (#0f172a)</option>
               <option value="transparent">Transparent</option>
             </select>
           </label>

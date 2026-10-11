@@ -115,27 +115,31 @@ export class AnimationApp {
     this.onionSkinRenderer = new OnionSkinRenderer(onionCanvas, this.project, this.renderer);
     this.onionSkinRenderer.resize(this.project.width, this.project.height);
 
-    // Ensure canvas board dimensions and background
-    canvasBoard.style.width = `${this.project.width}px`;
-    canvasBoard.style.height = `${this.project.height}px`;
-    canvasBoard.style.backgroundColor = this.project.backgroundColor || '#ffffff';
-
-    // Canvas Background Preset Dropdown in Header
+    // Canvas Background Preset & Custom Color Selector
     const animBgPreset = document.getElementById('animBgPreset');
+    const animBgCustomPicker = document.getElementById('animBgCustomPicker');
+
     if (animBgPreset) {
-      animBgPreset.value = this.project.backgroundColor || '#ffffff';
       animBgPreset.addEventListener('change', (e) => {
-        const newBg = e.target.value;
-        this.project.backgroundColor = newBg;
-        this.doc.backgroundColor = 'transparent';
-        canvasBoard.style.backgroundColor = newBg;
-        this.renderer.render();
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
-        this.timelineUI.updateActiveThumbnail();
-        this.storage.scheduleAutosave();
-        events.emit('toast', { message: `Canvas Background: ${e.target.options[e.target.selectedIndex].text}` });
+        const val = e.target.value;
+        if (val === 'custom') {
+          animBgCustomPicker?.click();
+        } else {
+          this.applyCanvasBackground(val, true);
+        }
       });
     }
+
+    if (animBgCustomPicker) {
+      animBgCustomPicker.addEventListener('input', (e) => {
+        this.applyCanvasBackground(e.target.value, false);
+      });
+      animBgCustomPicker.addEventListener('change', (e) => {
+        this.applyCanvasBackground(e.target.value, true);
+      });
+    }
+
+    this.applyCanvasBackground(this.project.backgroundColor || '#ffffff', false);
 
     // 4. App Context for Tools
     const appContext = {
@@ -347,6 +351,101 @@ export class AnimationApp {
     this.renderer.render();
     this.onionSkinRenderer.render(this.activeFrameIndex, false);
     this.storage.updateStatusBadge('saved');
+  }
+
+  applyCanvasBackground(newBg, showToast = true) {
+    this.project.backgroundColor = newBg;
+    this.doc.backgroundColor = 'transparent';
+
+    const canvasBoard = document.getElementById('canvasBoard');
+    const animBgSwatchDot = document.getElementById('animBgSwatchDot');
+    const animBgPreset = document.getElementById('animBgPreset');
+    const animBgCustomPicker = document.getElementById('animBgCustomPicker');
+    const settingsBgPreset = document.getElementById('settingsBgPreset');
+
+    if (newBg === 'transparent') {
+      canvasBoard?.classList.add('transparent-canvas');
+      if (canvasBoard) canvasBoard.style.backgroundColor = 'transparent';
+      if (animBgSwatchDot) {
+        animBgSwatchDot.classList.add('checkerboard');
+        animBgSwatchDot.style.backgroundColor = '';
+      }
+    } else {
+      canvasBoard?.classList.remove('transparent-canvas');
+      if (canvasBoard) {
+        canvasBoard.style.backgroundColor = newBg;
+        canvasBoard.style.backgroundImage = 'none';
+      }
+      if (animBgSwatchDot) {
+        animBgSwatchDot.classList.remove('checkerboard');
+        animBgSwatchDot.style.backgroundColor = newBg;
+      }
+    }
+
+    if (animBgPreset) {
+      let matched = false;
+      for (const opt of animBgPreset.options) {
+        if (opt.value === newBg) {
+          animBgPreset.value = newBg;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched && newBg !== 'transparent') {
+        let customOpt = animBgPreset.querySelector('option[data-custom="true"]');
+        if (!customOpt) {
+          customOpt = document.createElement('option');
+          customOpt.dataset.custom = "true";
+          animBgPreset.appendChild(customOpt);
+        }
+        customOpt.value = newBg;
+        customOpt.textContent = `Custom (${newBg.toUpperCase()})`;
+        animBgPreset.value = newBg;
+      }
+    }
+
+    if (settingsBgPreset) {
+      settingsBgPreset.value = newBg;
+    }
+
+    if (animBgCustomPicker && newBg !== 'transparent' && newBg.startsWith('#')) {
+      animBgCustomPicker.value = newBg;
+    }
+
+    this.renderer.render();
+    this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI?.isPlaying || false);
+    this.timelineUI?.updateActiveThumbnail();
+    this.storage.scheduleAutosave();
+
+    // Auto-contrast brush protection for animation
+    const isDark = (hex) => {
+      if (!hex || hex === 'transparent') return false;
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      if (c.length !== 6) return false;
+      const r = parseInt(c.substr(0, 2), 16);
+      const g = parseInt(c.substr(2, 2), 16);
+      const b = parseInt(c.substr(4, 2), 16);
+      return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+    };
+
+    const activeColor = this.toolManager?.toolState?.color;
+    if (isDark(newBg)) {
+      if (isDark(activeColor)) {
+        events.emit('color:selected', { color: '#ffffff' });
+        events.emit('toast', { message: 'Switched brush to White for contrast against dark background' });
+      }
+    } else if (newBg !== 'transparent') {
+      if (activeColor === '#ffffff' || activeColor?.toLowerCase() === '#fff') {
+        events.emit('color:selected', { color: '#18181b' });
+        events.emit('toast', { message: 'Switched brush to Charcoal for contrast against light background' });
+      }
+    }
+
+    if (showToast) {
+      const label = newBg === 'transparent' ? 'Transparent (PNG)' : newBg.toUpperCase();
+      events.emit('toast', { message: `Canvas Background: ${label}` });
+    }
   }
 
   // ==========================================
@@ -575,13 +674,9 @@ export class AnimationApp {
         if (canvasBoard) {
           canvasBoard.style.width = `${newW}px`;
           canvasBoard.style.height = `${newH}px`;
-          canvasBoard.style.backgroundColor = newBg;
         }
 
-        const animBgPreset = document.getElementById('animBgPreset');
-        if (animBgPreset) {
-          animBgPreset.value = newBg;
-        }
+        this.applyCanvasBackground(newBg, false);
 
         this.renderer.resize(newW, newH);
         this.onionSkinRenderer.resize(newW, newH);
@@ -716,13 +811,9 @@ export class AnimationApp {
         if (canvasBoard) {
           canvasBoard.style.width = `${this.project.width}px`;
           canvasBoard.style.height = `${this.project.height}px`;
-          canvasBoard.style.backgroundColor = this.project.backgroundColor || '#ffffff';
         }
 
-        const animBgPreset = document.getElementById('animBgPreset');
-        if (animBgPreset) {
-          animBgPreset.value = this.project.backgroundColor || '#ffffff';
-        }
+        this.applyCanvasBackground(this.project.backgroundColor || '#ffffff', false);
 
         this.renderer.resize(this.project.width, this.project.height);
         this.onionSkinRenderer.resize(this.project.width, this.project.height);
@@ -758,13 +849,9 @@ export class AnimationApp {
         if (canvasBoard) {
           canvasBoard.style.width = `${this.project.width}px`;
           canvasBoard.style.height = `${this.project.height}px`;
-          canvasBoard.style.backgroundColor = '#ffffff';
         }
 
-        const animBgPreset = document.getElementById('animBgPreset');
-        if (animBgPreset) {
-          animBgPreset.value = '#ffffff';
-        }
+        this.applyCanvasBackground('#ffffff', false);
 
         this.activeFrameIndex = -1;
         this.switchFrame(0);

@@ -253,13 +253,41 @@ body {
 .bg-selector {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-sm);
   font-size: 0.8rem;
   color: var(--text-muted);
+  transition: border-color 0.15s ease;
+}
+
+.bg-selector:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.bg-swatch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  display: inline-block;
+  background-color: #0f1117;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.bg-swatch-dot.checkerboard {
+  background-color: #ffffff !important;
+  background-image: 
+    linear-gradient(45deg, #94a3b8 25%, transparent 25%), 
+    linear-gradient(-45deg, #94a3b8 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #94a3b8 75%), 
+    linear-gradient(-45deg, transparent 75%, #94a3b8 75%) !important;
+  background-size: 8px 8px !important;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px !important;
 }
 
 .bg-selector select {
@@ -270,11 +298,42 @@ body {
   font-weight: 500;
   outline: none;
   cursor: pointer;
+  max-width: 130px;
 }
 
 .bg-selector select option {
   background: var(--bg-surface);
   color: #fff;
+  padding: 6px;
+}
+
+.bg-custom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.bg-custom-btn:hover {
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.15);
+}
+
+/* Checkerboard for Transparent Canvas */
+.canvas-board.transparent-canvas {
+  background-color: #ffffff !important;
+  background-image: 
+    linear-gradient(45deg, #cbd5e1 25%, transparent 25%), 
+    linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #cbd5e1 75%), 
+    linear-gradient(-45deg, transparent 75%, #cbd5e1 75%) !important;
+  background-size: 20px 20px !important;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px !important;
 }
 
 .btn {
@@ -617,7 +676,7 @@ body {
 
 #paintCanvas {
   z-index: 2;
-  background-color: #0f1117;
+  background-color: transparent !important;
 }
 
 #previewCanvas {

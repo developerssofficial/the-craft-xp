@@ -93,16 +93,21 @@
     <!-- Right Controls: Background, Import, Export -->
     <div class="header-right">
       <!-- Background Theme Selector -->
-      <div class="bg-selector">
-        <i class="fa-solid fa-fill"></i>
-        <select id="bgPreset" title="Canvas Background Color">
-          <option value="#0f1117" selected>Dark Studio</option>
+      <div class="bg-selector" title="Canvas Background Theme & Color">
+        <span class="bg-swatch-dot" id="bgSwatchDot" title="Current Background Color"></span>
+        <select id="bgPreset" title="Select Canvas Background Theme">
           <option value="#ffffff">Pure White</option>
-          <option value="#1e1e2e">Deep Indigo</option>
-          <option value="#f8fafc">Light Slate</option>
-          <option value="#18181b">Onyx Dark</option>
+          <option value="#0f1117" selected>Dark Studio</option>
+          <option value="#faf7f2">Warm Parchment</option>
+          <option value="#f1f5f9">Cool Slate</option>
+          <option value="#0f172a">Deep Midnight</option>
           <option value="transparent">Transparent (PNG)</option>
+          <option value="custom">Custom Color...</option>
         </select>
+        <input type="color" id="bgCustomPicker" style="display:none;" value="#0f1117">
+        <label for="bgCustomPicker" class="bg-custom-btn" title="Pick Any Custom Background Color">
+          <i class="fa-solid fa-palette"></i>
+        </label>
       </div>
 
       <div class="header-separator"></div>
