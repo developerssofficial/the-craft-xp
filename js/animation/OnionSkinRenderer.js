@@ -4,21 +4,22 @@
  * Overlays are strictly non-destructive and never appear in exported animations.
  */
 export class OnionSkinRenderer {
-  constructor(canvas, project) {
+  constructor(canvas, project, renderer = null) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.project = project;
+    this.renderer = renderer;
 
     // Configurable Onion Skin Settings
     this.enabled = true;
     this.prevFramesCount = 2; // 0 to 5
     this.nextFramesCount = 1; // 0 to 5
     this.baseOpacity = 0.35;   // 0.05 to 0.8
-    this.tintMode = 'color';  // 'color' (red=past, blue=future) or 'grayscale' or 'original'
+    this.tintMode = 'original';  // 'original' (natural colors at low opacity), 'color' (past red/future cyan), or 'grayscale'
 
-    // Colors
-    this.prevTint = 'rgba(239, 68, 68, 0.45)'; // Red/warm
-    this.nextTint = 'rgba(6, 182, 212, 0.45)'; // Cyan/cool
+    // Solid tint colors for source-in blending (prevents double opacity multiplication)
+    this.prevTint = '#ef4444'; // Red/warm
+    this.nextTint = '#06b6d4'; // Cyan/cool
 
     // Offscreen render buffers for compositing
     this.tempFrameCanvas = document.createElement('canvas');
@@ -124,6 +125,13 @@ export class OnionSkinRenderer {
       this.ctx.globalAlpha = alpha;
       this.ctx.drawImage(this.tintCanvas, 0, 0);
       this.ctx.restore();
+    } else if (this.tintMode === 'grayscale') {
+      this.ctx.save();
+      this.ctx.globalAlpha = alpha;
+      this.ctx.filter = 'grayscale(100%)';
+      this.ctx.drawImage(this.tempFrameCanvas, 0, 0);
+      this.ctx.filter = 'none';
+      this.ctx.restore();
     } else {
       // Natural original colors with translucency
       this.ctx.save();
@@ -134,6 +142,11 @@ export class OnionSkinRenderer {
   }
 
   renderElement(ctx, el) {
+    if (this.renderer && typeof this.renderer.renderElement === 'function') {
+      this.renderer.renderElement(ctx, el);
+      return;
+    }
+
     ctx.save();
     ctx.globalAlpha = el.opacity ?? 1.0;
 
@@ -188,25 +201,28 @@ export class OnionSkinRenderer {
     ctx.lineWidth = el.size || 4;
     ctx.fillStyle = el.fillColor || el.color;
 
-    const { startX, startY, endX, endY, shape } = el;
-    const w = endX - startX;
-    const h = endY - startY;
+    const x = el.x !== undefined ? el.x : (el.startX ?? 0);
+    const y = el.y !== undefined ? el.y : (el.startY ?? 0);
+    const w = el.width !== undefined ? el.width : ((el.endX ?? x) - x);
+    const h = el.height !== undefined ? el.height : ((el.endY ?? y) - y);
+    const shape = el.shapeType || el.shape || 'rectangle';
+    const fill = el.fill !== undefined ? el.fill : (el.filled ?? false);
 
     ctx.beginPath();
     if (shape === 'rectangle') {
-      if (el.filled) ctx.fillRect(startX, startY, w, h);
-      ctx.strokeRect(startX, startY, w, h);
+      if (fill) ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
     } else if (shape === 'circle') {
       const rx = Math.abs(w / 2);
       const ry = Math.abs(h / 2);
-      const cx = startX + w / 2;
-      const cy = startY + h / 2;
+      const cx = x + w / 2;
+      const cy = y + h / 2;
       ctx.ellipse(cx, cy, Math.max(1, rx), Math.max(1, ry), 0, 0, Math.PI * 2);
-      if (el.filled) ctx.fill();
+      if (fill) ctx.fill();
       ctx.stroke();
     } else if (shape === 'line') {
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(endX, endY);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w, y + h);
       ctx.stroke();
     }
     ctx.restore();

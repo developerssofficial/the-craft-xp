@@ -10,8 +10,9 @@
 import { events } from '../core/EventBus.js';
 
 export class AnimationExporter {
-  constructor(project) {
+  constructor(project, renderer = null) {
     this.project = project;
+    this.renderer = renderer;
   }
 
   /**
@@ -59,6 +60,11 @@ export class AnimationExporter {
   }
 
   renderElement(ctx, el) {
+    if (this.renderer && typeof this.renderer.renderElement === 'function') {
+      this.renderer.renderElement(ctx, el);
+      return;
+    }
+
     ctx.save();
     ctx.globalAlpha = el.opacity ?? 1.0;
 
@@ -112,25 +118,28 @@ export class AnimationExporter {
     ctx.lineWidth = el.size || 4;
     ctx.fillStyle = el.fillColor || el.color;
 
-    const { startX, startY, endX, endY, shape } = el;
-    const w = endX - startX;
-    const h = endY - startY;
+    const x = el.x !== undefined ? el.x : (el.startX ?? 0);
+    const y = el.y !== undefined ? el.y : (el.startY ?? 0);
+    const w = el.width !== undefined ? el.width : ((el.endX ?? x) - x);
+    const h = el.height !== undefined ? el.height : ((el.endY ?? y) - y);
+    const shape = el.shapeType || el.shape || 'rectangle';
+    const fill = el.fill !== undefined ? el.fill : (el.filled ?? false);
 
     ctx.beginPath();
     if (shape === 'rectangle') {
-      if (el.filled) ctx.fillRect(startX, startY, w, h);
-      ctx.strokeRect(startX, startY, w, h);
+      if (fill) ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
     } else if (shape === 'circle') {
       const rx = Math.abs(w / 2);
       const ry = Math.abs(h / 2);
-      const cx = startX + w / 2;
-      const cy = startY + h / 2;
+      const cx = x + w / 2;
+      const cy = y + h / 2;
       ctx.ellipse(cx, cy, Math.max(1, rx), Math.max(1, ry), 0, 0, Math.PI * 2);
-      if (el.filled) ctx.fill();
+      if (fill) ctx.fill();
       ctx.stroke();
     } else if (shape === 'line') {
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(endX, endY);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w, y + h);
       ctx.stroke();
     }
     ctx.restore();

@@ -165,99 +165,50 @@ export class TimelineUI {
     // Frame Operations
     newBlankBtn.addEventListener('click', () => {
       this.pause();
-      const newFrame = this.project.addFrame();
-      this.render();
-      if (this.callbacks.onSelectFrame) {
-        this.callbacks.onSelectFrame(this.project.currentFrameIndex);
+      if (this.callbacks.onAddBlankFrame) {
+        this.callbacks.onAddBlankFrame();
       }
-      events.emit('toast', { message: `Added ${newFrame.name}` });
-      if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
     });
 
     duplicateBtn.addEventListener('click', () => {
       this.pause();
-      const cloned = this.project.duplicateFrame();
-      if (cloned) {
-        this.render();
-        if (this.callbacks.onSelectFrame) {
-          this.callbacks.onSelectFrame(this.project.currentFrameIndex);
-        }
-        events.emit('toast', { message: `Duplicated to ${cloned.name}` });
-        if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
+      if (this.callbacks.onDuplicateFrame) {
+        this.callbacks.onDuplicateFrame();
       }
     });
 
     copyBtn.addEventListener('click', () => {
-      const copied = this.project.copyFrame();
-      if (copied) {
-        events.emit('toast', { message: `Copied ${copied.name}` });
+      if (this.callbacks.onCopyFrame) {
+        this.callbacks.onCopyFrame();
       }
     });
 
     pasteBtn.addEventListener('click', () => {
       this.pause();
-      const pasted = this.project.pasteFrame();
-      if (pasted) {
-        this.render();
-        if (this.callbacks.onSelectFrame) {
-          this.callbacks.onSelectFrame(this.project.currentFrameIndex);
-        }
-        events.emit('toast', { message: `Pasted ${pasted.name}` });
-        if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
-      } else {
-        events.emit('toast', { message: 'Clipboard is empty. Copy a frame first.', type: 'warning' });
+      if (this.callbacks.onPasteFrame) {
+        this.callbacks.onPasteFrame();
       }
     });
 
     moveLeftBtn.addEventListener('click', () => {
       const cur = this.project.currentFrameIndex;
-      if (cur > 0) {
-        this.project.moveFrame(cur, cur - 1);
-        this.render();
-        if (this.callbacks.onSelectFrame) {
-          this.callbacks.onSelectFrame(this.project.currentFrameIndex);
-        }
-        if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
+      if (cur > 0 && this.callbacks.onMoveFrame) {
+        this.callbacks.onMoveFrame(cur, cur - 1);
       }
     });
 
     moveRightBtn.addEventListener('click', () => {
       const cur = this.project.currentFrameIndex;
-      if (cur < this.project.frames.length - 1) {
-        this.project.moveFrame(cur, cur + 1);
-        this.render();
-        if (this.callbacks.onSelectFrame) {
-          this.callbacks.onSelectFrame(this.project.currentFrameIndex);
-        }
-        if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
+      if (cur < this.project.frames.length - 1 && this.callbacks.onMoveFrame) {
+        this.callbacks.onMoveFrame(cur, cur + 1);
       }
     });
 
     deleteBtn.addEventListener('click', () => {
-      this.confirmDeleteFrame();
-    });
-  }
-
-  confirmDeleteFrame() {
-    if (this.project.frames.length <= 1) {
-      events.emit('toast', { message: 'Cannot delete the only frame in the animation', type: 'warning' });
-      return;
-    }
-
-    const cur = this.project.currentFrameIndex;
-    const frame = this.project.frames[cur];
-
-    // Confirmation dialog before deleting
-    if (confirm(`Are you sure you want to delete "${frame.name}"? This cannot be undone.`)) {
-      this.pause();
-      this.project.deleteFrame(cur);
-      this.render();
-      if (this.callbacks.onSelectFrame) {
-        this.callbacks.onSelectFrame(this.project.currentFrameIndex);
+      if (this.callbacks.onDeleteFrame) {
+        this.callbacks.onDeleteFrame();
       }
-      events.emit('toast', { message: `Deleted ${frame.name}` });
-      if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
-    }
+    });
   }
 
   render() {
@@ -292,10 +243,8 @@ export class TimelineUI {
       if (dupMini) {
         dupMini.addEventListener('click', (e) => {
           e.stopPropagation();
-          this.project.duplicateFrame(idx);
-          this.render();
-          if (this.callbacks.onSelectFrame) this.callbacks.onSelectFrame(this.project.currentFrameIndex);
-          if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
+          this.pause();
+          if (this.callbacks.onDuplicateFrame) this.callbacks.onDuplicateFrame(idx);
         });
       }
 
@@ -303,8 +252,8 @@ export class TimelineUI {
       if (delMini) {
         delMini.addEventListener('click', (e) => {
           e.stopPropagation();
-          this.project.setCurrentFrame(idx);
-          this.confirmDeleteFrame();
+          this.pause();
+          if (this.callbacks.onDeleteFrame) this.callbacks.onDeleteFrame(idx);
         });
       }
 
@@ -344,10 +293,9 @@ export class TimelineUI {
       card.addEventListener('drop', (e) => {
         e.preventDefault();
         if (this.draggedFrameIndex !== null && this.draggedFrameIndex !== idx) {
-          this.project.moveFrame(this.draggedFrameIndex, idx);
-          this.render();
-          if (this.callbacks.onSelectFrame) this.callbacks.onSelectFrame(this.project.currentFrameIndex);
-          if (this.callbacks.onFrameChanged) this.callbacks.onFrameChanged();
+          if (this.callbacks.onMoveFrame) {
+            this.callbacks.onMoveFrame(this.draggedFrameIndex, idx);
+          }
         }
       });
 
@@ -395,17 +343,20 @@ export class TimelineUI {
     ctx.restore();
   }
 
-  updateActiveThumbnail() {
-    const cur = this.project.currentFrameIndex;
+  updateThumbnail(frameIndex) {
     const track = this.container.querySelector('#timelineTrack');
     if (!track) return;
-    const card = track.querySelector(`.frame-card[data-index="${cur}"]`);
-    if (card) {
+    const card = track.querySelector(`.frame-card[data-index="${frameIndex}"]`);
+    if (card && this.project.frames[frameIndex]) {
       const thumb = card.querySelector('canvas.frame-thumb');
       if (thumb) {
-        this.drawThumbnail(thumb, this.project.getCurrentFrame());
+        this.drawThumbnail(thumb, this.project.frames[frameIndex]);
       }
     }
+  }
+
+  updateActiveThumbnail() {
+    this.updateThumbnail(this.project.currentFrameIndex);
   }
 
   updateFrameIndicator() {
@@ -416,12 +367,9 @@ export class TimelineUI {
   }
 
   goToFrame(index) {
-    if (this.project.setCurrentFrame(index)) {
-      this.updateActiveCardHighlight();
-      this.updateFrameIndicator();
-      if (this.callbacks.onSelectFrame) {
-        this.callbacks.onSelectFrame(index);
-      }
+    if (index < 0 || index >= this.project.frames.length) return;
+    if (this.callbacks.onSelectFrame) {
+      this.callbacks.onSelectFrame(index);
     }
   }
 

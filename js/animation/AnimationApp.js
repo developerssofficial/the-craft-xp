@@ -37,6 +37,7 @@ export class AnimationApp {
     this.layersUI = null;
     this.exporter = null;
     this.storage = null;
+    this.activeFrameIndex = 0;
 
     this.isRestoring = false;
   }
@@ -84,6 +85,7 @@ export class AnimationApp {
     }
 
     // 3. Setup Initial Frame Document
+    this.activeFrameIndex = this.project.currentFrameIndex || 0;
     const currentFrame = this.project.getCurrentFrame();
     this.doc = new Document({
       width: this.project.width,
@@ -100,6 +102,7 @@ export class AnimationApp {
       this.doc
     );
     this.renderer.resize(this.project.width, this.project.height);
+    this.exporter.renderer = this.renderer;
 
     this.viewportModel = new Viewport(
       { viewport, canvasBoard, symmetryGuide, zoomLevelDisplay },
@@ -109,7 +112,7 @@ export class AnimationApp {
     );
 
     // Onion Skin Renderer
-    this.onionSkinRenderer = new OnionSkinRenderer(onionCanvas, this.project);
+    this.onionSkinRenderer = new OnionSkinRenderer(onionCanvas, this.project, this.renderer);
     this.onionSkinRenderer.resize(this.project.width, this.project.height);
 
     // Ensure canvas board dimensions and background
@@ -210,22 +213,34 @@ export class AnimationApp {
     const timelineContainer = document.getElementById('timelineContainer');
     this.timelineUI = new TimelineUI(timelineContainer, this.project, this.exporter, {
       onSelectFrame: (idx) => this.switchFrame(idx),
+      onAddBlankFrame: () => this.addNewBlankFrame(),
+      onDuplicateFrame: (idx) => this.duplicateFrame(idx),
+      onDeleteFrame: (idx) => this.deleteFrame(idx),
+      onCopyFrame: () => this.copyCurrentFrame(),
+      onPasteFrame: () => this.pasteFrame(),
+      onMoveFrame: (from, to) => this.moveFrame(from, to),
       onFrameChanged: () => {
         this.syncDocToFrame();
         this.layersUI.render();
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
         this.storage.scheduleAutosave();
       },
       onPlaybackStateChange: (isPlaying) => {
         if (isPlaying) {
+          this.saveActiveFrame();
           this.onionSkinRenderer.clear();
         } else {
-          this.onionSkinRenderer.render(this.project.currentFrameIndex, false);
+          this.onionSkinRenderer.render(this.activeFrameIndex, false);
+          this.layersUI.render();
         }
       },
       onToggleOnionSkin: () => {
         this.onionSkinRenderer.enabled = !this.onionSkinRenderer.enabled;
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        if (this.onionSkinRenderer.enabled) {
+          this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
+        } else {
+          this.onionSkinRenderer.clear();
+        }
         events.emit('toast', { message: `Onion Skin: ${this.onionSkinRenderer.enabled ? 'ON' : 'OFF'}` });
         return this.onionSkinRenderer.enabled;
       }
@@ -265,8 +280,8 @@ export class AnimationApp {
     events.on('document:changed', () => {
       this.renderer.render();
       if (!this.isRestoring) {
-        this.timelineUI.updateActiveThumbnail();
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        this.timelineUI.updateThumbnail(this.activeFrameIndex);
+        this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
         this.storage.scheduleAutosave();
       }
     });
@@ -291,8 +306,8 @@ export class AnimationApp {
         if (confirm(`Clear contents of "${activeLayer.name}" on current frame?`)) {
           activeLayer.clear();
           this.renderer.render();
-          this.timelineUI.updateActiveThumbnail();
-          this.onionSkinRenderer.render(this.project.currentFrameIndex, false);
+          this.timelineUI.updateThumbnail(this.activeFrameIndex);
+          this.onionSkinRenderer.render(this.activeFrameIndex, false);
           this.storage.scheduleAutosave();
           events.emit('toast', { message: `Cleared ${activeLayer.name}` });
         }
@@ -330,44 +345,159 @@ export class AnimationApp {
 
     // Initial render
     this.renderer.render();
-    this.onionSkinRenderer.render(this.project.currentFrameIndex, false);
+    this.onionSkinRenderer.render(this.activeFrameIndex, false);
     this.storage.updateStatusBadge('saved');
   }
 
   // ==========================================
-  // Frame Switching Engine
+  // Frame Management & Switching Engine
   // ==========================================
-  switchFrame(newIndex) {
-    // 1. Sync current doc layers to active frame
-    const curFrame = this.project.getCurrentFrame();
+  saveActiveFrame() {
+    if (this.activeFrameIndex < 0 || this.activeFrameIndex >= this.project.frames.length) return;
+    const curFrame = this.project.frames[this.activeFrameIndex];
     if (curFrame) {
       curFrame.layers = this.doc.layers;
       curFrame.activeLayerId = this.doc.activeLayerId;
+      this.timelineUI?.updateThumbnail(this.activeFrameIndex);
+    }
+  }
+
+  switchFrame(newIndex) {
+    if (newIndex < 0 || newIndex >= this.project.frames.length) return;
+
+    const isPlaying = this.timelineUI?.isPlaying || false;
+
+    // 1. Sync outgoing frame from doc unless already saved, deleted, or in playback
+    if (!isPlaying && this.activeFrameIndex >= 0 && this.activeFrameIndex < this.project.frames.length && this.activeFrameIndex !== newIndex) {
+      this.saveActiveFrame();
     }
 
-    // 2. Select next frame
+    // 2. Switch active frame index & project pointer
+    this.activeFrameIndex = newIndex;
     this.project.setCurrentFrame(newIndex);
-    const nextFrame = this.project.getCurrentFrame();
+    const nextFrame = this.project.frames[newIndex];
     if (!nextFrame) return;
 
     // 3. Load next frame's layers into Doc
     this.doc.layers = nextFrame.layers;
     this.doc.activeLayerId = nextFrame.activeLayerId || nextFrame.layers[0]?.id;
 
-    // 4. Update command history (clear redo stack for fresh frame action)
-    this.commandManager.clear();
+    // 4. Update command history (clear undo/redo stack for fresh frame action)
+    if (!isPlaying) {
+      this.commandManager.clear();
+    }
 
     // 5. Render Canvas & Layers UI & Onion Skin
     this.renderer.render();
-    this.layersUI.render();
-
-    if (!this.timelineUI.isPlaying) {
+    if (!isPlaying) {
+      this.layersUI.render();
       this.onionSkinRenderer.render(newIndex, false);
+    }
+
+    // 6. Update timeline indicator and highlight
+    this.timelineUI?.updateActiveCardHighlight();
+    this.timelineUI?.updateFrameIndicator();
+  }
+
+  addNewBlankFrame(insertIndex = null) {
+    // 1. Save active frame first (so Frame 1's drawing is stored and ready for onion skin ghosting)
+    this.saveActiveFrame();
+
+    // 2. Add brand new blank frame into project (contains its own blank Layer 1)
+    const newFrame = this.project.addFrame(insertIndex);
+
+    // 3. Re-render timeline cards
+    this.timelineUI.render();
+
+    // 4. Switch to newly added blank frame
+    this.switchFrame(this.project.currentFrameIndex);
+
+    // 5. User feedback & autosave
+    events.emit('toast', { message: `Added ${newFrame.name}` });
+    this.storage.scheduleAutosave();
+  }
+
+  duplicateFrame(targetIndex = null) {
+    const idx = targetIndex !== null ? targetIndex : this.activeFrameIndex;
+    if (idx < 0 || idx >= this.project.frames.length) return;
+
+    this.saveActiveFrame();
+    const cloned = this.project.duplicateFrame(idx);
+    if (cloned) {
+      this.timelineUI.render();
+      this.switchFrame(this.project.currentFrameIndex);
+      events.emit('toast', { message: `Duplicated to ${cloned.name}` });
+      this.storage.scheduleAutosave();
     }
   }
 
+  deleteFrame(targetIndex = null) {
+    if (this.project.frames.length <= 1) {
+      events.emit('toast', { message: 'Cannot delete the only frame in the animation', type: 'warning' });
+      return;
+    }
+
+    const idx = targetIndex !== null ? targetIndex : this.activeFrameIndex;
+    if (idx < 0 || idx >= this.project.frames.length) return;
+
+    const frame = this.project.frames[idx];
+    if (!confirm(`Are you sure you want to delete "${frame.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    this.timelineUI.pause();
+
+    // Invalidate activeFrameIndex if deleting currently active frame
+    if (this.activeFrameIndex === idx) {
+      this.activeFrameIndex = -1;
+    } else if (this.activeFrameIndex > idx) {
+      this.activeFrameIndex--;
+    }
+
+    this.project.deleteFrame(idx);
+    const nextIndex = Math.min(Math.max(0, idx), this.project.frames.length - 1);
+    this.timelineUI.render();
+    this.switchFrame(nextIndex);
+
+    events.emit('toast', { message: `Deleted ${frame.name}` });
+    this.storage.scheduleAutosave();
+  }
+
+  copyCurrentFrame() {
+    this.saveActiveFrame();
+    const copied = this.project.copyFrame(this.activeFrameIndex);
+    if (copied) {
+      events.emit('toast', { message: `Copied ${copied.name}` });
+    }
+  }
+
+  pasteFrame() {
+    this.saveActiveFrame();
+    const pasted = this.project.pasteFrame(this.activeFrameIndex + 1);
+    if (pasted) {
+      this.timelineUI.render();
+      this.switchFrame(this.project.currentFrameIndex);
+      events.emit('toast', { message: `Pasted ${pasted.name}` });
+      this.storage.scheduleAutosave();
+    } else {
+      events.emit('toast', { message: 'Clipboard is empty. Copy a frame first.', type: 'warning' });
+    }
+  }
+
+  moveFrame(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= this.project.frames.length || toIndex < 0 || toIndex >= this.project.frames.length) return;
+
+    this.saveActiveFrame();
+    this.project.moveFrame(fromIndex, toIndex);
+
+    this.activeFrameIndex = toIndex;
+    this.timelineUI.render();
+    this.switchFrame(toIndex);
+    this.storage.scheduleAutosave();
+  }
+
   syncActiveFrameToDoc() {
-    const curFrame = this.project.getCurrentFrame();
+    const curFrame = this.project.frames[this.activeFrameIndex];
     if (curFrame) {
       this.doc.layers = curFrame.layers;
       this.doc.activeLayerId = curFrame.activeLayerId;
@@ -375,7 +505,7 @@ export class AnimationApp {
   }
 
   syncDocToFrame() {
-    const curFrame = this.project.getCurrentFrame();
+    const curFrame = this.project.frames[this.activeFrameIndex];
     if (curFrame) {
       this.doc.layers = curFrame.layers;
       this.doc.activeLayerId = curFrame.activeLayerId;
@@ -597,6 +727,7 @@ export class AnimationApp {
         this.renderer.resize(this.project.width, this.project.height);
         this.onionSkinRenderer.resize(this.project.width, this.project.height);
 
+        this.activeFrameIndex = -1;
         this.switchFrame(0);
         this.timelineUI.render();
         this.layersUI.render();
@@ -635,6 +766,7 @@ export class AnimationApp {
           animBgPreset.value = '#ffffff';
         }
 
+        this.activeFrameIndex = -1;
         this.switchFrame(0);
         this.timelineUI.render();
         this.layersUI.render();
@@ -692,17 +824,25 @@ export class AnimationApp {
     const opacityVal = document.getElementById('onionOpacityVal');
     const tintSelect = document.getElementById('onionTintSelect');
 
+    if (tintSelect) {
+      tintSelect.value = this.onionSkinRenderer.tintMode;
+      tintSelect.addEventListener('change', (e) => {
+        this.onionSkinRenderer.tintMode = e.target.value;
+        this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
+      });
+    }
+
     if (prevCountInput) {
       prevCountInput.addEventListener('change', (e) => {
         this.onionSkinRenderer.prevFramesCount = parseInt(e.target.value, 10) || 0;
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
       });
     }
 
     if (nextCountInput) {
       nextCountInput.addEventListener('change', (e) => {
         this.onionSkinRenderer.nextFramesCount = parseInt(e.target.value, 10) || 0;
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
       });
     }
 
@@ -711,14 +851,7 @@ export class AnimationApp {
         const val = parseInt(e.target.value, 10) / 100;
         this.onionSkinRenderer.baseOpacity = val;
         if (opacityVal) opacityVal.textContent = `${Math.round(val * 100)}%`;
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
-      });
-    }
-
-    if (tintSelect) {
-      tintSelect.addEventListener('change', (e) => {
-        this.onionSkinRenderer.tintMode = e.target.value;
-        this.onionSkinRenderer.render(this.project.currentFrameIndex, this.timelineUI.isPlaying);
+        this.onionSkinRenderer.render(this.activeFrameIndex, this.timelineUI.isPlaying);
       });
     }
   }
@@ -775,9 +908,7 @@ export class AnimationApp {
         case '+':
         case '=': // Add Blank Frame
           e.preventDefault();
-          this.project.addFrame();
-          this.timelineUI.render();
-          this.switchFrame(this.project.currentFrameIndex);
+          this.addNewBlankFrame();
           break;
         case 'v': this.toolManager.setActiveTool('select'); break;
         case 'b': this.toolManager.setActiveTool('brush'); break;

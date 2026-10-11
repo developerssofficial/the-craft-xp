@@ -81,14 +81,14 @@
   pointer-events: none;
 }
 
-.canvas-stage.animation-stage #paintCanvas {
+.canvas-stage.animation-stage #onionCanvas {
   z-index: 2;
-  background-color: transparent;
+  pointer-events: none;
 }
 
-.canvas-stage.animation-stage #onionCanvas {
+.canvas-stage.animation-stage #paintCanvas {
   z-index: 3;
-  pointer-events: none;
+  background-color: transparent;
 }
 
 .canvas-stage.animation-stage #previewCanvas {
