@@ -99,6 +99,7 @@ export class StorageService {
           color: this.toolManager.toolState.color,
           size: this.toolManager.toolState.size,
           opacity: this.toolManager.toolState.opacity,
+          activeBrushPreset: this.toolManager.toolState.activeBrushPreset || 'basic_medium_round',
           fillShape: this.toolManager.toolState.fillShape,
           selectedStamp: this.toolManager.toolState.selectedStamp,
           pressureDynamics: this.toolManager.toolState.pressureDynamics !== false

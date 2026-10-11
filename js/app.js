@@ -17,6 +17,7 @@ import { ClearLayerCommand } from './core/commands/DrawCommand.js';
 import { Layer } from './layers/Layer.js';
 import { StorageService } from './core/StorageService.js';
 import { ProjectManager } from './ui/ProjectManager.js';
+import { BrushLibraryUI } from './ui/BrushLibraryUI.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
@@ -170,6 +171,44 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveProjectBtn) {
     saveProjectBtn.addEventListener('click', () => projectManager.saveProject());
   }
+
+  // Toast Notification Helper
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(message, type = 'info') {
+    if (!toastEl) return;
+    toastEl.textContent = message;
+    toastEl.className = `toast-popup show ${type}`;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.className = 'toast-popup';
+    }, 2500);
+  }
+  window.showToast = showToast;
+
+  // Brush Library UI (180+ Presets across 13 Categories)
+  const brushLibraryUI = new BrushLibraryUI(toolManager);
+  window.brushLibraryUI = brushLibraryUI;
+
+  const openBrushLibBtn = document.getElementById('openBrushLibBtn');
+  const dockBrushLibBtn = document.getElementById('dockBrushLibBtn');
+  const panelOpenBrushLibBtn = document.getElementById('panelOpenBrushLibBtn');
+  const activeBrushBadge = document.getElementById('activeBrushBadge');
+  const activeBrushPanelLabel = document.getElementById('activeBrushPanelLabel');
+
+  const openBrushLibHandler = (e) => {
+    if (e) e.preventDefault();
+    brushLibraryUI.open();
+  };
+
+  if (openBrushLibBtn) openBrushLibBtn.addEventListener('click', openBrushLibHandler);
+  if (dockBrushLibBtn) dockBrushLibBtn.addEventListener('click', openBrushLibHandler);
+  if (panelOpenBrushLibBtn) panelOpenBrushLibBtn.addEventListener('click', openBrushLibHandler);
+
+  events.on('brush:selected', ({ brushId, brush }) => {
+    if (activeBrushBadge) activeBrushBadge.textContent = brush.name;
+    if (activeBrushPanelLabel) activeBrushPanelLabel.textContent = `${brush.name}`;
+  });
 
   // ==========================================
   // 4. Pointer Events Binding (Stylus, Touch, Mouse)
@@ -469,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'r': toolManager.setActiveTool('rainbow'); break;
       case 'a': toolManager.setActiveTool('spray'); break;
       case 'h': toolManager.setActiveTool('highlighter'); break;
+      case 'k': e.preventDefault(); brushLibraryUI.toggle(); break;
       case 'l': toolManager.setActiveTool('line'); break;
       case 'f': toolManager.setActiveTool('fill'); break;
       case 'i': toolManager.setActiveTool('pipette'); break;
@@ -594,6 +634,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           if (session.settings.pressureDynamics !== undefined) {
             toolManager.toolState.pressureDynamics = session.settings.pressureDynamics;
+          }
+          if (session.settings.activeBrushPreset) {
+            brushLibraryUI.selectBrush(session.settings.activeBrushPreset);
           }
         } else {
           propertiesPanelUI.setColor('#6366f1');

@@ -3,6 +3,8 @@
  * High-performance multi-layer compositing engine supporting blend modes,
  * layer opacity, vector elements, offscreen raster buffers, and selection bounds.
  */
+import { brushEngine } from '../brushes/ProceduralBrushEngine.js';
+
 export class CanvasRenderer {
   constructor(canvasElements, documentModel) {
     this.paintCanvas = canvasElements.paintCanvas;
@@ -417,6 +419,9 @@ export class CanvasRenderer {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
       ctx.fillStyle = 'rgba(0,0,0,1)';
+      this.drawPath(ctx, el.points, baseSize);
+      ctx.restore();
+      return;
     } else if (el.tool === 'highlighter') {
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 0.25;
@@ -424,6 +429,9 @@ export class CanvasRenderer {
       ctx.fillStyle = el.color;
       ctx.lineCap = 'square';
       ctx.shadowBlur = 0;
+      this.drawPath(ctx, el.points, baseSize);
+      ctx.restore();
+      return;
     } else if (el.tool === 'neon') {
       // Glow (G) Tool: Pure neon glow using true stroke color
       ctx.globalCompositeOperation = 'source-over';
@@ -431,6 +439,13 @@ export class CanvasRenderer {
       ctx.fillStyle = el.color;
       ctx.shadowBlur = baseSize * 2;
       ctx.shadowColor = el.color;
+      this.drawPath(ctx, el.points, baseSize);
+      ctx.restore();
+      return;
+    } else if (el.brushPreset || el.tool === 'brush') {
+      ctx.restore();
+      brushEngine.renderStroke(ctx, el);
+      return;
     } else {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;

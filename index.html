@@ -87,6 +87,10 @@
           <i class="fa-solid fa-expand"></i>
           <span>Zen Mode</span>
         </button>
+        <button id="openBrushLibBtn" class="toggle-pill active-glow-btn" title="Open 180+ Handcrafted Brushes Library">
+          <i class="fa-solid fa-paintbrush"></i>
+          <span>Brushes</span>
+        </button>
       </div>
 
       <div class="header-separator"></div>
@@ -198,6 +202,9 @@
         <span class="group-label">Draw</span>
         <button class="tool-item active" data-tool="brush" data-tooltip="Smooth Brush (B)">
           <i class="fa-solid fa-paintbrush"></i>
+        </button>
+        <button class="tool-item" id="dockBrushLibBtn" data-tooltip="Browse 180+ Brushes Library">
+          <i class="fa-solid fa-layer-group"></i>
         </button>
         <button class="tool-item" data-tool="pencil" data-tooltip="Fine Pencil (P)">
           <i class="fa-solid fa-pencil"></i>
@@ -311,6 +318,18 @@
             <div class="preview-ring" id="previewRing">
               <div id="brushDotPreview"></div>
             </div>
+          </div>
+
+          <!-- Active Brush Preset Card -->
+          <div class="field-item">
+            <div class="field-label">
+              <span>Brush Preset</span>
+              <span id="activeBrushBadge" class="value-tag">Medium Round</span>
+            </div>
+            <button id="panelOpenBrushLibBtn" class="brush-preset-quick-btn" title="Browse 180+ Handcrafted Brushes">
+              <i class="fa-solid fa-paintbrush"></i>
+              <span id="activeBrushPanelLabel">Browse 180+ Brushes...</span>
+            </button>
           </div>
 
           <!-- Stroke Width -->
@@ -496,6 +515,6 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast-popup"></div>
 
-  <script type="module" src="js/app.js?v=2.4"></script>
+  <script type="module" src="js/app.js?v=2.5"></script>
 </body>
 </html>

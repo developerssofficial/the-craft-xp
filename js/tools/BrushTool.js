@@ -94,9 +94,11 @@ export class BrushTool extends BaseTool {
       const elementsToCommit = [];
       const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
       const usePressure = ctx.toolState.pressureDynamics !== false;
+      const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
       const mainStroke = {
         type: 'stroke',
         tool: this.mode,
+        brushPreset,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
@@ -109,6 +111,7 @@ export class BrushTool extends BaseTool {
         const mirrorStroke = {
           type: 'stroke',
           tool: this.mode,
+          brushPreset,
           color: color,
           size: ctx.toolState.size,
           opacity: ctx.toolState.opacity,
@@ -138,9 +141,11 @@ export class BrushTool extends BaseTool {
 
     const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
     const usePressure = ctx.toolState.pressureDynamics !== false;
+    const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
     const tempStroke = {
       type: 'stroke',
       tool: this.mode,
+      brushPreset,
       color: color,
       size: ctx.toolState.size,
       opacity: ctx.toolState.opacity,
@@ -152,6 +157,7 @@ export class BrushTool extends BaseTool {
       const tempMirror = (ctx.isSymmetry && this.symPoints.length >= 1) ? {
         type: 'stroke',
         tool: this.mode,
+        brushPreset,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
@@ -193,6 +199,7 @@ export class BrushTool extends BaseTool {
       const tempMirror = {
         type: 'stroke',
         tool: this.mode,
+        brushPreset,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
