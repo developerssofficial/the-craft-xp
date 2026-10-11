@@ -286,6 +286,52 @@ export class CanvasRenderer {
     }
   }
 
+  /**
+   * Detects if element color matches or contrasts poorly against the canvas background
+   * (e.g. pure white strokes drawn on a pure white canvas)
+   */
+  isContrastConflict(color) {
+    if (!color || typeof color !== 'string') return false;
+    const bg = this.doc?.backgroundColor;
+    if (!bg || bg === 'transparent') return false;
+
+    let c1 = color.trim().toLowerCase().replace('#', '');
+    let c2 = bg.trim().toLowerCase().replace('#', '');
+    if (c1.length === 3) c1 = c1.split('').map(x => x + x).join('');
+    if (c2.length === 3) c2 = c2.split('').map(x => x + x).join('');
+    if (c1.length !== 6 || c2.length !== 6) return false;
+
+    const lum = (hex) => {
+      const r = parseInt(hex.substr(0, 2), 16) / 255;
+      const g = parseInt(hex.substr(2, 2), 16) / 255;
+      const b = parseInt(hex.substr(4, 2), 16) / 255;
+      const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      return f(r) * 0.2126 + f(g) * 0.7152 + f(b) * 0.0722;
+    };
+
+    const l1 = lum(c1);
+    const l2 = lum(c2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+    const ratio = (lighter + 0.05) / (darker + 0.05);
+
+    // If contrast ratio is under 1.45 (e.g. #ffffff on #ffffff where ratio is 1.0)
+    return ratio < 1.45;
+  }
+
+  getBgLuminance() {
+    const bg = this.doc?.backgroundColor;
+    if (!bg || bg === 'transparent') return 1.0;
+    let c = bg.trim().toLowerCase().replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    if (c.length !== 6) return 1.0;
+    const r = parseInt(c.substr(0, 2), 16) / 255;
+    const g = parseInt(c.substr(2, 2), 16) / 255;
+    const b = parseInt(c.substr(4, 2), 16) / 255;
+    const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    return f(r) * 0.2126 + f(g) * 0.7152 + f(b) * 0.0722;
+  }
+
   renderElement(ctx, el) {
     ctx.save();
     ctx.globalAlpha = el.opacity ?? 1.0;
@@ -352,6 +398,8 @@ export class CanvasRenderer {
     const baseSize = el.tool === 'pencil' ? 1.5 : (el.size || 8);
     ctx.lineWidth = baseSize;
 
+    const conflict = this.isContrastConflict(el.color);
+
     if (el.tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -362,19 +410,47 @@ export class CanvasRenderer {
       ctx.strokeStyle = el.color;
       ctx.fillStyle = el.color;
       ctx.lineCap = 'square';
+      if (conflict) {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.40)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+      }
     } else if (el.tool === 'neon') {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;
       ctx.fillStyle = el.color;
       ctx.shadowBlur = baseSize * 2;
-      ctx.shadowColor = el.color;
+      ctx.shadowColor = conflict ? 'rgba(99, 102, 241, 0.85)' : el.color;
     } else {
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = el.color;
       ctx.fillStyle = el.color;
-      ctx.shadowBlur = 0;
+
+      // PASS 1 (Contrast outline): If white on white or matching, render a distinct crisp border underneath
+      if (conflict) {
+        const isLightBg = this.getBgLuminance() > 0.5;
+        const outlineColor = isLightBg ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.70)';
+        const outlineWidth = baseSize + Math.max(4, Math.round(baseSize * 0.3));
+
+        ctx.save();
+        ctx.lineWidth = outlineWidth;
+        ctx.strokeStyle = outlineColor;
+        ctx.fillStyle = outlineColor;
+        this.drawPath(ctx, el.points, outlineWidth);
+        ctx.restore();
+
+        // Also add soft ambient shadow for 3D embossed look
+        ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.50)';
+        ctx.shadowBlur = Math.max(3, baseSize * 0.4);
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+      } else {
+        ctx.shadowBlur = 0;
+      }
     }
 
+    // PASS 2: Render the actual stroke in genuine element color
     this.drawPath(ctx, el.points, baseSize);
 
     ctx.restore();
@@ -383,6 +459,12 @@ export class CanvasRenderer {
   renderSpray(ctx, el) {
     if (!el.drops || el.drops.length === 0) return;
     ctx.fillStyle = el.color;
+    if (this.isContrastConflict(el.color)) {
+      const isLightBg = this.getBgLuminance() > 0.5;
+      ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)';
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetY = 1;
+    }
     el.drops.forEach(d => {
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.radius || 1, 0, Math.PI * 2);
@@ -396,7 +478,16 @@ export class CanvasRenderer {
     ctx.fillStyle = el.color;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.shadowBlur = 0;
+
+    if (this.isContrastConflict(el.color)) {
+      const isLightBg = this.getBgLuminance() > 0.5;
+      ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)';
+      ctx.shadowBlur = Math.max(3, (el.size || 4) * 0.45);
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 1;
+    } else {
+      ctx.shadowBlur = 0;
+    }
 
     const { x, y, width, height, shapeType, fill } = el;
 
@@ -495,7 +586,13 @@ export class CanvasRenderer {
     ctx.font = `${el.fontWeight || '600'} ${el.fontSize || 32}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.fillStyle = el.color;
     ctx.textBaseline = 'top';
-    ctx.shadowBlur = 0;
+
+    if (this.isContrastConflict(el.color)) {
+      const isLightBg = this.getBgLuminance() > 0.5;
+      ctx.shadowColor = isLightBg ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.55)';
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+    }
 
     const lines = (el.text || '').split('\n');
     const lineHeight = (el.fontSize || 32) * 1.25;
