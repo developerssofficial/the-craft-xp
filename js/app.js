@@ -544,14 +544,21 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.nextLayerNumber = session.nextLayerNumber || (session.layers.length + 1);
 
         const restoredLayers = [];
-        for (const lData of session.layers) {
+        for (let i = 0; i < session.layers.length; i++) {
+          const lData = session.layers[i];
+          let blendMode = lData.blendMode || 'source-over';
+          if (blendMode === 'normal') blendMode = 'source-over';
+          // Sanitize stale/corrupt session where layer blendMode was set to 'screen' or 'lighten' on white canvas
+          if ((i === 0 || session.layers.length === 1) && (blendMode === 'screen' || blendMode === 'lighten')) {
+            blendMode = 'source-over';
+          }
           const layer = new Layer({
             id: lData.id,
             name: lData.name,
             visible: lData.visible !== false,
             locked: !!lData.locked,
             opacity: lData.opacity !== undefined ? lData.opacity : 1.0,
-            blendMode: lData.blendMode || 'source-over',
+            blendMode: blendMode,
             type: lData.type || 'vector',
             elements: Array.isArray(lData.elements) ? lData.elements : []
           });

@@ -11,7 +11,9 @@ export class Layer {
     this.visible = options.visible !== undefined ? options.visible : true;
     this.locked = options.locked !== undefined ? options.locked : false;
     this.opacity = options.opacity !== undefined ? options.opacity : 1.0;
-    this.blendMode = options.blendMode || 'source-over'; // standard Canvas globalCompositeOperation
+    let mode = options.blendMode || 'source-over';
+    if (mode === 'normal') mode = 'source-over';
+    this.blendMode = mode; // standard Canvas globalCompositeOperation
     this.type = options.type || 'vector';
     this.elements = Array.isArray(options.elements) ? [...options.elements] : [];
     

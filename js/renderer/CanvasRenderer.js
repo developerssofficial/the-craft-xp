@@ -69,7 +69,7 @@ export class CanvasRenderer {
     }
 
     // 2. Composite all visible layers from bottom to top
-    this.doc.layers.forEach(layer => {
+    this.doc.layers.forEach((layer, index) => {
       if (!layer.visible) return;
 
       // Clear offscreen layer buffer
@@ -90,7 +90,7 @@ export class CanvasRenderer {
       // Composite the layer onto the master paint canvas
       this.paintCtx.save();
       this.paintCtx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
-      this.paintCtx.globalCompositeOperation = layer.blendMode || 'source-over';
+      this.paintCtx.globalCompositeOperation = this.getEffectiveBlendMode(layer, index);
       this.paintCtx.drawImage(this.layerBuffer, 0, 0);
       this.paintCtx.restore();
     });
@@ -128,6 +128,21 @@ export class CanvasRenderer {
       this.gridCtx.stroke();
     }
     this.gridCtx.restore();
+  }
+
+  getEffectiveBlendMode(layer, layerIndex = -1) {
+    let mode = layer.blendMode || 'source-over';
+    if (mode === 'normal') mode = 'source-over';
+    // Safety safeguard: In digital painting, the bottom layer (index === 0) or solitary layer
+    // compositing directly over solid white/light background paper must never use 'screen' or 'lighten'.
+    // In Canvas 2D math, screen composite on #ffffff yields 100% white, permanently bleaching all strokes invisible!
+    if ((layerIndex === 0 || this.doc.layers.length <= 1) && (mode === 'screen' || mode === 'lighten')) {
+      const bg = (this.doc.backgroundColor || '#ffffff').toLowerCase();
+      if (bg === '#ffffff' || bg === '#fff' || bg === 'white' || !bg || bg === 'transparent') {
+        return 'source-over';
+      }
+    }
+    return mode;
   }
 
   /**
@@ -200,7 +215,7 @@ export class CanvasRenderer {
 
       destCtx.save();
       destCtx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
-      destCtx.globalCompositeOperation = layer.blendMode || 'source-over';
+      destCtx.globalCompositeOperation = this.getEffectiveBlendMode(layer, this.doc.layers.indexOf(layer));
       destCtx.drawImage(this.layerBuffer, 0, 0);
       destCtx.restore();
     });
@@ -234,7 +249,7 @@ export class CanvasRenderer {
     const layer = this.targetLiveLayer;
     this.paintCtx.save();
     this.paintCtx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
-    this.paintCtx.globalCompositeOperation = layer.blendMode || 'source-over';
+    this.paintCtx.globalCompositeOperation = this.getEffectiveBlendMode(layer, this.doc.layers.indexOf(layer));
     this.paintCtx.drawImage(this.layerBuffer, 0, 0);
     this.paintCtx.restore();
 
@@ -702,7 +717,7 @@ export class CanvasRenderer {
 
       expCtx.save();
       expCtx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1.0;
-      expCtx.globalCompositeOperation = layer.blendMode || 'source-over';
+      expCtx.globalCompositeOperation = this.getEffectiveBlendMode(layer, index);
       expCtx.drawImage(layerBuffer, 0, 0);
       expCtx.restore();
     });
