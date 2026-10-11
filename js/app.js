@@ -6,11 +6,11 @@
 import { events } from './core/EventBus.js';
 import { Document } from './core/Document.js';
 import { CommandManager } from './core/CommandManager.js';
-import { CanvasRenderer } from './renderer/CanvasRenderer.js?v=2.1';
+import { CanvasRenderer } from './renderer/CanvasRenderer.js?v=2.2';
 import { Viewport } from './renderer/Viewport.js';
 import { ToolManager } from './tools/ToolManager.js';
 import { ToolDockUI } from './ui/ToolDockUI.js';
-import { PropertiesPanelUI } from './ui/PropertiesPanelUI.js?v=2.1';
+import { PropertiesPanelUI } from './ui/PropertiesPanelUI.js?v=2.2';
 import { LayersPanel } from './ui/LayersPanel.js';
 import { ExportModal } from './ui/ExportModal.js';
 import { ClearLayerCommand } from './core/commands/DrawCommand.js';
@@ -569,11 +569,27 @@ document.addEventListener('DOMContentLoaded', () => {
           : restoredLayers[0].id;
 
         if (session.settings) {
-          if (session.settings.color) toolManager.toolState.color = session.settings.color;
-          if (session.settings.size) toolManager.toolState.size = session.settings.size;
-          if (session.settings.opacity !== undefined) toolManager.toolState.opacity = session.settings.opacity;
-          if (session.settings.fillShape !== undefined) toolManager.toolState.fillShape = session.settings.fillShape;
-          if (session.settings.pressureDynamics !== undefined) toolManager.toolState.pressureDynamics = session.settings.pressureDynamics;
+          let restoredColor = session.settings.color || '#6366f1';
+          // Sanitize stale/broken session where brush was saved as pure white on pure white background
+          if (restoredColor.toLowerCase() === '#ffffff' && (doc.backgroundColor === '#ffffff' || !doc.backgroundColor)) {
+            restoredColor = '#6366f1';
+          }
+          propertiesPanelUI.setColor(restoredColor);
+
+          if (session.settings.size) {
+            propertiesPanelUI.setSize(session.settings.size);
+          }
+          if (session.settings.opacity !== undefined) {
+            propertiesPanelUI.setOpacity(session.settings.opacity);
+          }
+          if (session.settings.fillShape !== undefined) {
+            toolManager.toolState.fillShape = session.settings.fillShape;
+          }
+          if (session.settings.pressureDynamics !== undefined) {
+            toolManager.toolState.pressureDynamics = session.settings.pressureDynamics;
+          }
+        } else {
+          propertiesPanelUI.setColor('#6366f1');
         }
 
         applyCanvasBackground(doc.backgroundColor || '#ffffff', false);
