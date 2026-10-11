@@ -5,6 +5,15 @@
  * Airbrush, Basic, Caligraphy, Charcoal, Elements, Hair, Halftone, Inking, Outline, Particles, Pixel, Sketching, Watercolor.
  */
 
+/**
+ * High-performance deterministic PRNG based on coordinates & seed.
+ * Guarantees that identical stroke coordinates produce 100% deterministic, frozen procedural grain/noise across redraws.
+ */
+export function coordRand(x, y, seed = 0) {
+  const n = Math.sin(x * 12.9898 + y * 78.233 + (seed + 1) * 37.719) * 43758.5453123;
+  return n - Math.floor(n);
+}
+
 export const BRUSH_CATEGORIES = [
   { id: 'airbrush', label: 'Airbrush', icon: 'fa-spray-can', count: 8 },
   { id: 'basic', label: 'Basic', icon: 'fa-circle-dot', count: 25 },
@@ -431,8 +440,8 @@ export class ProceduralBrushEngine {
         let r = Math.max(2, (size * press) / 2);
 
         if (fuzzy) {
-          x += (Math.random() - 0.5) * (r * 0.35);
-          y += (Math.random() - 0.5) * (r * 0.35);
+          x += (coordRand(x, y, 1) - 0.5) * (r * 0.35);
+          y += (coordRand(x, y, 2) - 0.5) * (r * 0.35);
         }
 
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -449,8 +458,8 @@ export class ProceduralBrushEngine {
           const particleCount = Math.floor(r * grain * 1.5);
           ctx.fillStyle = color;
           for (let k = 0; k < particleCount; k++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * r;
+            const angle = coordRand(x, y, k * 2 + 10) * Math.PI * 2;
+            const dist = coordRand(x, y, k * 2 + 11) * r;
             const px = x + Math.cos(angle) * dist;
             const py = y + Math.sin(angle) * dist;
             ctx.globalAlpha = (1 - (dist / r)) * 0.35;
@@ -638,12 +647,12 @@ export class ProceduralBrushEngine {
         ctx.fillStyle = color;
         const dots = Math.floor(r * 2.5 * roughness);
         for (let k = 0; k < dots; k++) {
-          const a = Math.random() * Math.PI * 2;
-          const d = Math.random() * r;
+          const a = coordRand(x, y, k * 4 + 1) * Math.PI * 2;
+          const d = coordRand(x, y, k * 4 + 2) * r;
           const px = x + Math.cos(a) * d;
           const py = y + Math.sin(a) * d;
-          ctx.globalAlpha = (1 - (d / r) * 0.5) * (Math.random() * 0.6 + 0.4);
-          const dotSize = Math.random() * 2 + 1;
+          ctx.globalAlpha = (1 - (d / r) * 0.5) * (coordRand(x, y, k * 4 + 3) * 0.6 + 0.4);
+          const dotSize = coordRand(x, y, k * 4 + 4) * 2 + 1;
           ctx.fillRect(px, py, dotSize, dotSize);
         }
       }
@@ -673,10 +682,10 @@ export class ProceduralBrushEngine {
       const grainCount = Math.floor(dist * 0.7);
       ctx.fillStyle = color;
       for (let g = 0; g < grainCount; g++) {
-        const gt = Math.random();
-        const gx = p1.x + (p2.x - p1.x) * gt + (Math.random() - 0.5) * w;
-        const gy = p1.y + (p2.y - p1.y) * gt + (Math.random() - 0.5) * w;
-        ctx.globalAlpha = Math.random() * 0.35 + 0.15;
+        const gt = coordRand(p1.x, p1.y, g * 4 + 1);
+        const gx = p1.x + (p2.x - p1.x) * gt + (coordRand(p1.x, p2.y, g * 4 + 2) - 0.5) * w;
+        const gy = p1.y + (p2.y - p1.y) * gt + (coordRand(p2.x, p1.y, g * 4 + 3) - 0.5) * w;
+        ctx.globalAlpha = coordRand(gx, gy, g * 4 + 4) * 0.35 + 0.15;
         ctx.fillRect(gx, gy, 1, 1);
       }
     }
@@ -735,9 +744,9 @@ export class ProceduralBrushEngine {
 
         const bristles = 5;
         for (let b = 0; b < bristles; b++) {
-          if (Math.random() < 0.25) continue;
+          if (coordRand(x, y, b * 2 + 1) < 0.25) continue;
           const offset = ((b / (bristles - 1)) - 0.5) * w;
-          ctx.fillRect(x + offset, y + (Math.random() - 0.5) * 2, 1.8, 1.8);
+          ctx.fillRect(x + offset, y + (coordRand(x, y, b * 2 + 2) - 0.5) * 2, 1.8, 1.8);
         }
       }
     }
@@ -752,13 +761,13 @@ export class ProceduralBrushEngine {
       ctx.arc(p.x, p.y, mainR, 0, Math.PI * 2);
       ctx.fill();
 
-      const splatters = Math.floor(Math.random() * 4 + 2);
+      const splatters = Math.floor(coordRand(p.x, p.y, 1) * 4 + 2);
       for (let s = 0; s < splatters; s++) {
-        const ang = Math.random() * Math.PI * 2;
-        const dist = Math.random() * (size * 1.5) + mainR;
+        const ang = coordRand(p.x, p.y, s * 3 + 10) * Math.PI * 2;
+        const dist = coordRand(p.x, p.y, s * 3 + 11) * (size * 1.5) + mainR;
         const sx = p.x + Math.cos(ang) * dist;
         const sy = p.y + Math.sin(ang) * dist;
-        const sr = Math.random() * (mainR * 0.4) + 0.5;
+        const sr = coordRand(p.x, p.y, s * 3 + 12) * (mainR * 0.4) + 0.5;
         ctx.beginPath();
         ctx.arc(sx, sy, sr, 0, Math.PI * 2);
         ctx.fill();
@@ -767,30 +776,51 @@ export class ProceduralBrushEngine {
   }
 
   renderHair(ctx, pts, color, size, usePressure, brush) {
+    if (pts.length < 2) {
+      this.renderStandardStroke(ctx, pts, color, size, usePressure);
+      return;
+    }
     const strands = brush.strands ?? (brush.tines ?? 7);
     const spread = (brush.spread ?? 1.0) * size;
     ctx.strokeStyle = color;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.lineWidth = Math.max(0.6, (brush.fine ? 0.8 : 1.5));
+
+    // Precalculate smoothed tangent angles for all points to eliminate wild angle flipping
+    const angles = new Array(pts.length);
+    let lastAngle = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const prev = pts[Math.max(0, i - 1)];
+      const next = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = next.x - prev.x;
+      const dy = next.y - prev.y;
+      if (Math.hypot(dx, dy) > 0.5) {
+        lastAngle = Math.atan2(dy, dx) + Math.PI / 2;
+      }
+      angles[i] = lastAngle;
+    }
 
     for (let s = 0; s < strands; s++) {
       const strandOffset = ((s / (strands - 1 || 1)) - 0.5) * spread;
 
-      ctx.beginPath();
+      const strandPoints = [];
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
-        let nextP = pts[i + 1] || p;
-        let prevP = pts[i - 1] || p;
-        const angle = Math.atan2(nextP.y - prevP.y, nextP.x - prevP.x) + Math.PI / 2;
+        const angle = angles[i];
         const ox = Math.cos(angle) * strandOffset;
         const oy = Math.sin(angle) * strandOffset;
-
-        const hx = p.x + ox;
-        const hy = p.y + oy;
-
-        if (i === 0) ctx.moveTo(hx, hy);
-        else ctx.lineTo(hx, hy);
+        strandPoints.push({ x: p.x + ox, y: p.y + oy });
       }
+
+      ctx.beginPath();
+      ctx.moveTo(strandPoints[0].x, strandPoints[0].y);
+      for (let i = 1; i < strandPoints.length - 1; i++) {
+        const mx = (strandPoints[i].x + strandPoints[i + 1].x) / 2;
+        const my = (strandPoints[i].y + strandPoints[i + 1].y) / 2;
+        ctx.quadraticCurveTo(strandPoints[i].x, strandPoints[i].y, mx, my);
+      }
+      ctx.lineTo(strandPoints[strandPoints.length - 1].x, strandPoints[strandPoints.length - 1].y);
       ctx.stroke();
     }
   }
@@ -873,23 +903,23 @@ export class ProceduralBrushEngine {
 
     for (let i = 0; i < pts.length; i++) {
       const p = pts[i];
-      const count = Math.floor(Math.random() * 5 + 3);
+      const count = Math.floor(coordRand(p.x, p.y, 1) * 5 + 3);
       const scatterR = size * 1.2;
 
       for (let k = 0; k < count; k++) {
-        const ang = Math.random() * Math.PI * 2;
-        const d = Math.random() * scatterR;
+        const ang = coordRand(p.x, p.y, k * 3 + 10) * Math.PI * 2;
+        const d = coordRand(p.x, p.y, k * 3 + 11) * scatterR;
         const px = p.x + Math.cos(ang) * d;
         const py = p.y + Math.sin(ang) * d;
 
         if (isBubble) {
-          const br = Math.random() * (size * 0.4) + 1.5;
+          const br = coordRand(p.x, p.y, k * 3 + 12) * (size * 0.4) + 1.5;
           ctx.beginPath();
           ctx.arc(px, py, br, 0, Math.PI * 2);
           ctx.lineWidth = 1.2;
           ctx.stroke();
         } else {
-          const pr = Math.random() * 2 + 1;
+          const pr = coordRand(p.x, p.y, k * 3 + 12) * 2 + 1;
           ctx.fillRect(px, py, pr, pr);
         }
       }
@@ -938,8 +968,10 @@ export class ProceduralBrushEngine {
 
         ctx.fillStyle = grad;
         ctx.globalAlpha = 0.25;
+        const ox = (coordRand(x, y, s * 2 + 1) - 0.5) * (r * 0.4);
+        const oy = (coordRand(x, y, s * 2 + 2) - 0.5) * (r * 0.4);
         ctx.beginPath();
-        ctx.arc(x + (Math.random() - 0.5) * (r * 0.4), y + (Math.random() - 0.5) * (r * 0.4), r, 0, Math.PI * 2);
+        ctx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
         ctx.fill();
       }
     }
