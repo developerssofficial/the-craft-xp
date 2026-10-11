@@ -6,11 +6,11 @@
 import { events } from './core/EventBus.js';
 import { Document } from './core/Document.js';
 import { CommandManager } from './core/CommandManager.js';
-import { CanvasRenderer } from './renderer/CanvasRenderer.js';
+import { CanvasRenderer } from './renderer/CanvasRenderer.js?v=2.1';
 import { Viewport } from './renderer/Viewport.js';
 import { ToolManager } from './tools/ToolManager.js';
 import { ToolDockUI } from './ui/ToolDockUI.js';
-import { PropertiesPanelUI } from './ui/PropertiesPanelUI.js';
+import { PropertiesPanelUI } from './ui/PropertiesPanelUI.js?v=2.1';
 import { LayersPanel } from './ui/LayersPanel.js';
 import { ExportModal } from './ui/ExportModal.js';
 import { ClearLayerCommand } from './core/commands/DrawCommand.js';
