@@ -442,7 +442,11 @@ export class BrushLibraryUI {
 
     // Ensure active tool is BrushTool
     if (this.toolManager.activeTool?.id !== 'brush') {
-      this.toolManager.setTool('brush');
+      if (typeof this.toolManager.setActiveTool === 'function') {
+        this.toolManager.setActiveTool('brush');
+      } else if (typeof this.toolManager.setTool === 'function') {
+        this.toolManager.setTool('brush');
+      }
     }
 
     this.updateActiveBadge();

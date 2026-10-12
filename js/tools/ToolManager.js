@@ -84,6 +84,10 @@ export class ToolManager {
     events.emit('tool:changed', { toolId, tool: this.activeTool });
   }
 
+  setTool(toolId) {
+    return this.setActiveTool(toolId);
+  }
+
   getActiveTool() {
     return this.activeTool;
   }

@@ -23,7 +23,6 @@ export class BrushTool extends BaseTool {
     this.lastX = 0;
     this.lastY = 0;
     this.currentVelocity = 0;
-    this.renderedIndex = 0;
   }
 
   onPointerDown(e, ctx) {
@@ -64,14 +63,23 @@ export class BrushTool extends BaseTool {
 
     // Begin live real-time eraser composite session
     if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.beginLiveEraser) {
+      // Check if current layer is empty while other layers have content
+      if (ctx.activeLayer) {
+        const hasContent = (ctx.activeLayer.elements && ctx.activeLayer.elements.length > 0) || ctx.activeLayer.rasterCanvas;
+        if (!hasContent && ctx.doc && ctx.doc.layers) {
+          const otherLayers = ctx.doc.layers.filter(l => l.id !== ctx.activeLayer.id && ((l.elements && l.elements.length > 0) || l.rasterCanvas));
+          if (otherLayers.length > 0) {
+            import('../core/EventBus.js').then(({ events }) => {
+              events.emit('toast', { message: `Active layer "${ctx.activeLayer.name || 'Current'}" is empty. Select the layer with drawings to erase.` });
+            });
+          }
+        }
+      }
       ctx.renderer.beginLiveEraser(ctx.activeLayer.id);
     }
 
-    // Clear preview canvas and render initial dot
-    ctx.renderer.previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
-    this.renderedIndex = 0;
-    this.renderPreview(ctx.renderer.previewCtx, ctx, 0);
-    this.renderedIndex = 1;
+    // Clear preview canvas and render initial point
+    this.renderPreview(ctx.renderer.previewCtx, ctx);
   }
 
   onPointerMove(e, ctx) {
@@ -129,9 +137,7 @@ export class BrushTool extends BaseTool {
       this.rainbowHue = (this.rainbowHue + 3) % 360;
     }
 
-    const fromIdx = Math.max(0, this.renderedIndex - 1);
-    this.renderPreview(ctx.renderer.previewCtx, ctx, fromIdx);
-    this.renderedIndex = this.points.length;
+    this.renderPreview(ctx.renderer.previewCtx, ctx);
   }
 
   onPointerUp(e, ctx) {
@@ -193,7 +199,6 @@ export class BrushTool extends BaseTool {
 
     this.points = [];
     this.symPoints = [];
-    this.renderedIndex = 0;
     ctx.renderer.previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
 
     if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.drawCursorRing) {
@@ -201,12 +206,10 @@ export class BrushTool extends BaseTool {
     }
   }
 
-  renderPreview(previewCtx, ctx, fromIndex = 0) {
+  renderPreview(previewCtx, ctx) {
     if (!this.isDrawing || this.points.length === 0) return;
 
-    if (fromIndex === 0) {
-      previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
-    }
+    previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
 
     const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
     const usePressure = ctx.toolState.pressureDynamics !== false;
@@ -240,7 +243,7 @@ export class BrushTool extends BaseTool {
 
       // Real-time canvas erasure!
       if (ctx.renderer && ctx.renderer.renderLiveEraser) {
-        ctx.renderer.renderLiveEraser(tempStroke, tempMirror, fromIndex);
+        ctx.renderer.renderLiveEraser(tempStroke, tempMirror);
       }
 
       // Draw high-visibility circular outline for the active eraser tip
@@ -267,7 +270,7 @@ export class BrushTool extends BaseTool {
     }
 
     // Additive tools (brush, pencil, neon, rainbow, highlighter)
-    ctx.renderer.renderStroke(previewCtx, tempStroke, fromIndex);
+    ctx.renderer.renderStroke(previewCtx, tempStroke);
 
     if (ctx.isSymmetry && this.symPoints.length >= 1) {
       const tempMirror = {
@@ -281,7 +284,7 @@ export class BrushTool extends BaseTool {
         usePressure,
         points: this.symPoints
       };
-      ctx.renderer.renderStroke(previewCtx, tempMirror, fromIndex);
+      ctx.renderer.renderStroke(previewCtx, tempMirror);
     }
   }
 
@@ -289,7 +292,6 @@ export class BrushTool extends BaseTool {
     this.isDrawing = false;
     this.points = [];
     this.symPoints = [];
-    this.renderedIndex = 0;
     if (this.currentRenderer) {
       if (this.mode === 'eraser' && this.currentRenderer.endLiveEraser) {
         this.currentRenderer.endLiveEraser();
