@@ -14,6 +14,37 @@ export function coordRand(x, y, seed = 0) {
   return n - Math.floor(n);
 }
 
+/**
+ * Robust color-to-RGBA converter preserving hue and saturation during alpha fade.
+ * Guarantees zero dark/dirty rims during radial gradient interpolation.
+ */
+export function colorToRgba(color, alpha = 1.0) {
+  if (!color) return `rgba(99, 102, 241, ${alpha})`;
+  if (color.startsWith('#')) {
+    let c = color.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    if (c.length === 6) {
+      const r = parseInt(c.substring(0, 2), 16);
+      const g = parseInt(c.substring(2, 4), 16);
+      const b = parseInt(c.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+  } else if (color.startsWith('rgba')) {
+    const parts = color.match(/[\d.]+/g);
+    if (parts && parts.length >= 3) {
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    }
+  } else if (color.startsWith('rgb')) {
+    const parts = color.match(/[\d.]+/g);
+    if (parts && parts.length >= 3) {
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    }
+  } else if (color.startsWith('hsl')) {
+    return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+  }
+  return color;
+}
+
 export const BRUSH_CATEGORIES = [
   { id: 'airbrush', label: 'Airbrush', icon: 'fa-spray-can', count: 8 },
   { id: 'basic', label: 'Basic', icon: 'fa-circle-dot', count: 25 },
@@ -380,14 +411,12 @@ export class ProceduralBrushEngine {
   }
 
   renderStandardStroke(ctx, pts, color, size, usePressure) {
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
+    if (!pts || pts.length === 0) return;
 
     if (pts.length === 1) {
       const p = pts[0];
       const r = (p.pressure && usePressure ? size * p.pressure : size) / 2;
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, Math.max(0.5, r), 0, Math.PI * 2);
       ctx.fill();
@@ -395,6 +424,9 @@ export class ProceduralBrushEngine {
     }
 
     if (!usePressure) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = color;
       ctx.lineWidth = size;
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
@@ -405,26 +437,109 @@ export class ProceduralBrushEngine {
       }
       ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
       ctx.stroke();
-    } else {
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p1 = pts[i];
-        const p2 = pts[i + 1];
-        const w1 = size * Math.max(0.2, p1.pressure || 0.5);
-        const w2 = size * Math.max(0.2, p2.pressure || 0.5);
-        ctx.lineWidth = (w1 + w2) / 2;
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-      }
+      return;
     }
+
+    // Dynamic pressure ribbon with smooth contiguous polygon rendering (ZERO circular scallops)
+    this.renderPressureRibbon(ctx, pts, color, size);
+  }
+
+  renderPressureRibbon(ctx, pts, color, size) {
+    if (pts.length === 2) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = color;
+      const w = size * (((pts[0].pressure || 0.5) + (pts[1].pressure || 0.5)) / 2);
+      ctx.lineWidth = Math.max(0.5, w);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.stroke();
+      return;
+    }
+
+    const n = pts.length;
+    const widths = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const p = pts[i].pressure !== undefined ? pts[i].pressure : 0.5;
+      widths[i] = Math.max(0.5, (size * Math.max(0.15, p)) / 2);
+    }
+
+    // Smooth widths along neighbors to eliminate any micro-jitter
+    for (let i = 1; i < n - 1; i++) {
+      widths[i] = (widths[i - 1] + widths[i] * 2 + widths[i + 1]) / 4;
+    }
+
+    const left = [];
+    const right = [];
+
+    for (let i = 0; i < n; i++) {
+      let dx, dy;
+      if (i === 0) {
+        dx = pts[1].x - pts[0].x;
+        dy = pts[1].y - pts[0].y;
+      } else if (i === n - 1) {
+        dx = pts[n - 1].x - pts[n - 2].x;
+        dy = pts[n - 1].y - pts[n - 2].y;
+      } else {
+        dx = pts[i + 1].x - pts[i - 1].x;
+        dy = pts[i + 1].y - pts[i - 1].y;
+      }
+
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const w = widths[i];
+
+      left.push({ x: pts[i].x + nx * w, y: pts[i].y + ny * w });
+      right.push({ x: pts[i].x - nx * w, y: pts[i].y - ny * w });
+    }
+
+    ctx.fillStyle = color;
+
+    // Start with smooth rounded tip at origin
+    ctx.beginPath();
+    ctx.arc(pts[0].x, pts[0].y, widths[0], 0, Math.PI * 2);
+    ctx.fill();
+
+    // End rounded tip
+    ctx.beginPath();
+    ctx.arc(pts[n - 1].x, pts[n - 1].y, widths[n - 1], 0, Math.PI * 2);
+    ctx.fill();
+
+    // Continuous body contour
+    ctx.beginPath();
+    ctx.moveTo(left[0].x, left[0].y);
+    for (let i = 0; i < n - 1; i++) {
+      const mx = (left[i].x + left[i + 1].x) / 2;
+      const my = (left[i].y + left[i + 1].y) / 2;
+      ctx.quadraticCurveTo(left[i].x, left[i].y, mx, my);
+    }
+    ctx.lineTo(left[n - 1].x, left[n - 1].y);
+    ctx.lineTo(right[n - 1].x, right[n - 1].y);
+    for (let i = n - 1; i > 0; i--) {
+      const mx = (right[i].x + right[i - 1].x) / 2;
+      const my = (right[i].y + right[i - 1].y) / 2;
+      ctx.quadraticCurveTo(right[i].x, right[i].y, mx, my);
+    }
+    ctx.lineTo(right[0].x, right[0].y);
+    ctx.closePath();
+    ctx.fill();
   }
 
   renderAirbrush(ctx, pts, color, size, usePressure, brush) {
-    const spacing = Math.max(1, size * 0.12);
+    if (!pts || pts.length === 0) return;
     const soft = brush.soft ?? 0.6;
     const grain = brush.grain ?? 0;
     const fuzzy = !!brush.fuzzy;
+
+    // Tight continuous spacing so individual circles completely dissolve into an unbroken, smooth spray
+    const spacing = Math.max(1, Math.min(2.5, size * 0.035));
+
+    // True airbrush flow: translucent paint deposition that blends seamlessly without hard borders
+    const centerAlpha = Math.max(0.04, Math.min(0.2, 0.12 * (1 - soft * 0.5)));
+    const coreColor = colorToRgba(color, centerAlpha);
+    const transparentColor = colorToRgba(color, 0);
 
     for (let i = 0; i < pts.length - 1; i++) {
       const p1 = pts[i];
@@ -440,14 +555,16 @@ export class ProceduralBrushEngine {
         let r = Math.max(2, (size * press) / 2);
 
         if (fuzzy) {
-          x += (coordRand(x, y, 1) - 0.5) * (r * 0.35);
-          y += (coordRand(x, y, 2) - 0.5) * (r * 0.35);
+          x += (coordRand(x, y, 1) - 0.5) * (r * 0.25);
+          y += (coordRand(x, y, 2) - 0.5) * (r * 0.25);
         }
 
+        // Seamless Gaussian falloff with transparent same-color stop (NO DARK RIMS)
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-        grad.addColorStop(0, color);
-        grad.addColorStop(Math.max(0.01, 1 - soft * 0.8), color);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        grad.addColorStop(0, coreColor);
+        grad.addColorStop(0.3, colorToRgba(color, centerAlpha * 0.7));
+        grad.addColorStop(0.7, colorToRgba(color, centerAlpha * 0.25));
+        grad.addColorStop(1, transparentColor);
 
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -455,14 +572,15 @@ export class ProceduralBrushEngine {
         ctx.fill();
 
         if (grain > 0) {
-          const particleCount = Math.floor(r * grain * 1.5);
+          const particleCount = Math.floor(r * grain * 0.75);
           ctx.fillStyle = color;
           for (let k = 0; k < particleCount; k++) {
             const angle = coordRand(x, y, k * 2 + 10) * Math.PI * 2;
-            const dist = coordRand(x, y, k * 2 + 11) * r;
+            const distRatio = Math.sqrt(coordRand(x, y, k * 2 + 11));
+            const dist = distRatio * r;
             const px = x + Math.cos(angle) * dist;
             const py = y + Math.sin(angle) * dist;
-            ctx.globalAlpha = (1 - (dist / r)) * 0.35;
+            ctx.globalAlpha = (1 - distRatio) * 0.45;
             ctx.fillRect(px, py, 1.2, 1.2);
           }
           ctx.globalAlpha = 1.0;
@@ -473,12 +591,18 @@ export class ProceduralBrushEngine {
 
   renderRound(ctx, pts, color, size, usePressure, brush) {
     const hardness = brush.hardness ?? 1.0;
-    if (hardness >= 0.95) {
+    if (hardness >= 0.7) {
+      // Hard Round, Medium Round, Smooth Edge Round -> Pure continuous smooth vector stroke!
       this.renderStandardStroke(ctx, pts, color, size, usePressure);
       return;
     }
 
-    const spacing = Math.max(1, size * 0.15);
+    // Soft round: tight continuous spacing with same-color transparent gradient
+    const spacing = Math.max(1, Math.min(2.5, size * 0.04));
+    const flowAlpha = Math.max(0.1, Math.min(0.35, hardness * 0.4 + 0.1));
+    const coreColor = colorToRgba(color, flowAlpha);
+    const transparentColor = colorToRgba(color, 0);
+
     for (let i = 0; i < pts.length - 1; i++) {
       const p1 = pts[i];
       const p2 = pts[i + 1];
@@ -492,9 +616,10 @@ export class ProceduralBrushEngine {
         const press = usePressure ? ((p1.pressure || 0.5) * (1 - t) + (p2.pressure || 0.5) * t) : 1.0;
         const r = Math.max(1, (size * press) / 2);
 
-        const grad = ctx.createRadialGradient(x, y, r * hardness, x, y, r);
-        grad.addColorStop(0, color);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        const grad = ctx.createRadialGradient(x, y, r * hardness * 0.6, x, y, r);
+        grad.addColorStop(0, coreColor);
+        grad.addColorStop(hardness, colorToRgba(color, flowAlpha * 0.8));
+        grad.addColorStop(1, transparentColor);
 
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -660,71 +785,44 @@ export class ProceduralBrushEngine {
   }
 
   renderPencil(ctx, pts, color, size, usePressure, brush) {
+    if (!pts || pts.length === 0) return;
     const softness = brush.softness ?? 0.6;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.save();
+    ctx.globalAlpha = Math.min(1.0, 0.45 + softness * 0.5);
 
+    // Continuous smooth core pencil line
+    this.renderStandardStroke(ctx, pts, color, Math.max(1, size * 0.75), usePressure);
+
+    // Graphite tooth and grain dispersion along the stroke
+    ctx.fillStyle = color;
     for (let i = 0; i < pts.length - 1; i++) {
       const p1 = pts[i];
       const p2 = pts[i + 1];
-      const press = usePressure ? ((p1.pressure || 0.5) + (p2.pressure || 0.5)) / 2 : 0.8;
-      const w = Math.max(1, size * press * 0.6);
-
-      ctx.lineWidth = w;
-      ctx.globalAlpha = Math.min(1.0, 0.4 + softness * 0.5);
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-
       const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const grainCount = Math.floor(dist * 0.7);
-      ctx.fillStyle = color;
+      const grainCount = Math.floor(dist * 0.6);
+      const w = Math.max(1, size * 0.6);
+
       for (let g = 0; g < grainCount; g++) {
         const gt = coordRand(p1.x, p1.y, g * 4 + 1);
         const gx = p1.x + (p2.x - p1.x) * gt + (coordRand(p1.x, p2.y, g * 4 + 2) - 0.5) * w;
         const gy = p1.y + (p2.y - p1.y) * gt + (coordRand(p2.x, p1.y, g * 4 + 3) - 0.5) * w;
-        ctx.globalAlpha = coordRand(gx, gy, g * 4 + 4) * 0.35 + 0.15;
+        ctx.globalAlpha = coordRand(gx, gy, g * 4 + 4) * 0.3 + 0.1;
         ctx.fillRect(gx, gy, 1, 1);
       }
     }
+    ctx.restore();
   }
 
   renderInk(ctx, pts, color, size, usePressure, brush) {
-    ctx.fillStyle = color;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
+    if (!pts || pts.length === 0) return;
     if (brush.type === 'ink_wash') {
+      ctx.save();
       ctx.globalAlpha = brush.opacity ?? 0.4;
-      ctx.lineWidth = size * 1.5;
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length - 1; i++) {
-        const mx = (pts[i].x + pts[i + 1].x) / 2;
-        const my = (pts[i].y + pts[i + 1].y) / 2;
-        ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
-      }
-      ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-      ctx.stroke();
+      this.renderStandardStroke(ctx, pts, color, size * 1.5, usePressure);
+      ctx.restore();
       return;
     }
-
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const pr1 = usePressure ? (p1.pressure || 0.5) : 0.8;
-      const pr2 = usePressure ? (p2.pressure || 0.5) : 0.8;
-      const w = Math.max(1, (size * (pr1 + pr2)) / 2);
-
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-    }
+    this.renderStandardStroke(ctx, pts, color, size, usePressure);
   }
 
   renderDryRoughInk(ctx, pts, color, size, usePressure) {
@@ -948,7 +1046,10 @@ export class ProceduralBrushEngine {
   }
 
   renderElementFX(ctx, pts, color, size, usePressure, brush) {
-    const spacing = Math.max(3, size * 0.25);
+    if (!pts || pts.length === 0) return;
+    const spacing = Math.max(1, Math.min(3, size * 0.05));
+    const transparentColor = colorToRgba(color, 0);
+
     for (let i = 0; i < pts.length - 1; i++) {
       const p1 = pts[i];
       const p2 = pts[i + 1];
@@ -962,14 +1063,13 @@ export class ProceduralBrushEngine {
         const r = Math.max(4, size * 0.8);
 
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-        grad.addColorStop(0, color);
-        grad.addColorStop(0.4, color);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        grad.addColorStop(0, colorToRgba(color, 0.35));
+        grad.addColorStop(0.4, colorToRgba(color, 0.2));
+        grad.addColorStop(1, transparentColor);
 
         ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.25;
-        const ox = (coordRand(x, y, s * 2 + 1) - 0.5) * (r * 0.4);
-        const oy = (coordRand(x, y, s * 2 + 2) - 0.5) * (r * 0.4);
+        const ox = (coordRand(x, y, s * 2 + 1) - 0.5) * (r * 0.3);
+        const oy = (coordRand(x, y, s * 2 + 2) - 0.5) * (r * 0.3);
         ctx.beginPath();
         ctx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
         ctx.fill();
@@ -978,7 +1078,10 @@ export class ProceduralBrushEngine {
   }
 
   renderWatercolor(ctx, pts, color, size, usePressure, brush) {
-    const spacing = Math.max(2, size * 0.15);
+    if (!pts || pts.length === 0) return;
+    const spacing = Math.max(1, Math.min(3, size * 0.04));
+    const transparentColor = colorToRgba(color, 0);
+
     for (let i = 0; i < pts.length - 1; i++) {
       const p1 = pts[i];
       const p2 = pts[i + 1];
@@ -991,13 +1094,12 @@ export class ProceduralBrushEngine {
         const y = p1.y + (p2.y - p1.y) * t;
         const r = Math.max(3, size / 2);
 
-        const grad = ctx.createRadialGradient(x, y, r * 0.6, x, y, r);
-        grad.addColorStop(0, color);
-        grad.addColorStop(0.85, color);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        const grad = ctx.createRadialGradient(x, y, r * 0.5, x, y, r);
+        grad.addColorStop(0, colorToRgba(color, 0.2));
+        grad.addColorStop(0.8, colorToRgba(color, 0.15));
+        grad.addColorStop(1, transparentColor);
 
         ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.18;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
