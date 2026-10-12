@@ -1078,10 +1078,13 @@ kbd {
    5. Floating Quick Bar (Bottom Center)
    ========================================================== */
 .floating-quick-bar {
-  position: absolute;
+  position: fixed;
   bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
+  height: 48px;
+  max-height: 48px;
+  box-sizing: border-box;
   background: var(--bg-panel);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
@@ -1094,12 +1097,17 @@ kbd {
   z-index: 40;
   transition: box-shadow 0.25s ease, opacity 0.25s ease, border-color 0.25s ease;
   user-select: none;
+  -webkit-user-select: none;
   touch-action: none;
+  cursor: grab;
+  white-space: nowrap;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .floating-quick-bar.is-dragging {
   cursor: grabbing !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(99, 102, 241, 0.4);
   border-color: var(--accent);
   transition: none !important;
 }
@@ -1108,14 +1116,16 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 28px;
+  width: 20px;
+  height: 32px;
   color: var(--text-subtle);
   cursor: grab;
   border-radius: var(--radius-xs);
   transition: color 0.15s ease, background 0.15s ease;
   padding: 2px;
   margin-right: -2px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .quick-bar-drag-handle:hover {
@@ -1137,6 +1147,8 @@ kbd {
   font-size: 0.72rem;
   transition: all 0.15s ease;
   margin-left: 2px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .quick-bar-collapse-btn:hover {
@@ -1151,6 +1163,7 @@ kbd {
   border-radius: 50% !important;
   width: 44px !important;
   height: 44px !important;
+  max-height: 44px !important;
   justify-content: center !important;
   cursor: pointer !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(99, 102, 241, 0.4) !important;
@@ -1222,6 +1235,10 @@ kbd {
   display: flex;
   align-items: center;
   gap: 7px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
 }
 
 .bottom-custom-color-wrap {
@@ -1229,6 +1246,10 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
 }
 
 #bottomColorPicker {
@@ -1258,6 +1279,10 @@ kbd {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
   transition: all 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
 }
 
 .color-wheel-btn:hover {
@@ -1272,6 +1297,10 @@ kbd {
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
 }
 
 .quick-dot:hover {
@@ -2402,9 +2431,12 @@ kbd {
   .floating-quick-bar {
     bottom: 10px;
     max-width: 95vw;
+    height: 48px;
+    max-height: 48px;
     padding: 5px 10px;
     gap: 8px;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
