@@ -17,6 +17,7 @@ import { OnionSkinRenderer } from './OnionSkinRenderer.js';
 import { TimelineUI } from './TimelineUI.js';
 import { AnimationLayersUI } from './AnimationLayersUI.js';
 import { AnimationExporter } from './AnimationExporter.js';
+import { BrushLibraryUI } from '../ui/BrushLibraryUI.js';
 
 export class AnimationApp {
   constructor() {
@@ -38,6 +39,9 @@ export class AnimationApp {
     this.exporter = null;
     this.storage = null;
     this.activeFrameIndex = 0;
+    this.brushLibraryUI = null;
+    this.toolDockUI = null;
+    this.propertiesPanelUI = null;
 
     this.isRestoring = false;
   }
@@ -202,6 +206,8 @@ export class AnimationApp {
       },
       this.toolManager
     );
+    this.toolDockUI = toolDockUI;
+    this.propertiesPanelUI = propertiesPanelUI;
 
     // 6. Frame Layers Panel UI
     const layersContainer = document.getElementById('frameLayersPanelContainer');
@@ -347,6 +353,7 @@ export class AnimationApp {
     this.initProjectFileMenu();
     this.initShortcuts();
     this.initOnionSkinPanel();
+    this.initBrushLibrary();
 
     // Initial render
     this.renderer.render();
@@ -1043,6 +1050,10 @@ export class AnimationApp {
           e.preventDefault();
           this.addNewBlankFrame();
           break;
+        case 'k': // Toggle 180+ Procedural Brushes Library
+          e.preventDefault();
+          this.brushLibraryUI?.toggle();
+          break;
         case 'v': this.toolManager.setActiveTool('select'); break;
         case 'b': this.toolManager.setActiveTool('brush'); break;
         case 'p': this.toolManager.setActiveTool('pencil'); break;
@@ -1055,6 +1066,59 @@ export class AnimationApp {
         case 't': this.toolManager.setActiveTool('text'); break;
       }
     });
+  }
+
+  // ==========================================
+  // 180+ Handcrafted Brushes Library Integration
+  // ==========================================
+  initBrushLibrary() {
+    // Toast Notification Helper
+    const toastEl = document.getElementById('toast');
+    let toastTimer = null;
+    const showToast = (message, type = 'info') => {
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.className = `toast-popup show ${type}`;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.className = 'toast-popup';
+      }, 2500);
+    };
+    window.showToast = showToast;
+    events.on('toast', ({ message, type }) => showToast(message, type || 'info'));
+
+    // Brush Library UI (180+ Presets across 13 Categories with Kreska-grade dynamics)
+    this.brushLibraryUI = new BrushLibraryUI(this.toolManager);
+    window.brushLibraryUI = this.brushLibraryUI;
+
+    const openBrushLibBtn = document.getElementById('openBrushLibBtn');
+    const headerBrushLibBtn = document.getElementById('headerBrushLibBtn');
+    const panelOpenBrushLibBtn = document.getElementById('panelOpenBrushLibBtn');
+    const activeBrushBadge = document.getElementById('activeBrushBadge');
+    const activeBrushPanelLabel = document.getElementById('activeBrushPanelLabel');
+
+    const openBrushLibHandler = (e) => {
+      if (e) e.preventDefault();
+      this.brushLibraryUI.open();
+    };
+
+    if (openBrushLibBtn) openBrushLibBtn.addEventListener('click', openBrushLibHandler);
+    if (headerBrushLibBtn) headerBrushLibBtn.addEventListener('click', openBrushLibHandler);
+    if (panelOpenBrushLibBtn) panelOpenBrushLibBtn.addEventListener('click', openBrushLibHandler);
+
+    events.on('brush:selected', ({ brushId, brush }) => {
+      if (activeBrushBadge) activeBrushBadge.textContent = brush.name;
+      if (activeBrushPanelLabel) activeBrushPanelLabel.textContent = brush.name;
+    });
+
+    // Mobile Drawer Backdrop Sync if drawer exists
+    const drawerBackdrop = document.getElementById('drawerBackdrop');
+    if (drawerBackdrop) {
+      drawerBackdrop.addEventListener('click', () => {
+        this.toolDockUI?.toggleCollapse(true);
+        this.propertiesPanelUI?.toggleCollapse(true);
+      });
+    }
   }
 }
 

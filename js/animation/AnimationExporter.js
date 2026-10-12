@@ -8,6 +8,7 @@
  * 5. Current Frame PNG (lossless snapshot)
  */
 import { events } from '../core/EventBus.js';
+import { brushEngine } from '../brushes/ProceduralBrushEngine.js';
 
 export class AnimationExporter {
   constructor(project, renderer = null) {
@@ -87,6 +88,10 @@ export class AnimationExporter {
 
   renderStroke(ctx, el) {
     if (!el.points || el.points.length === 0) return;
+    if (el.brushPreset || el.tool === 'brush') {
+      brushEngine.renderStroke(ctx, el);
+      return;
+    }
     const pts = el.points;
     ctx.save();
     ctx.lineCap = 'round';

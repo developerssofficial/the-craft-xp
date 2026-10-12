@@ -3,6 +3,8 @@
  * Renders translucent ghost previews of neighboring previous/next frames on a dedicated canvas layer.
  * Overlays are strictly non-destructive and never appear in exported animations.
  */
+import { brushEngine } from '../brushes/ProceduralBrushEngine.js';
+
 export class OnionSkinRenderer {
   constructor(canvas, project, renderer = null) {
     this.canvas = canvas;
@@ -182,6 +184,10 @@ export class OnionSkinRenderer {
 
   renderStroke(ctx, el) {
     if (!el.points || el.points.length === 0) return;
+    if (el.brushPreset || el.tool === 'brush') {
+      brushEngine.renderStroke(ctx, el);
+      return;
+    }
     const pts = el.points;
 
     ctx.save();
