@@ -167,12 +167,6 @@ export class PropertiesPanelUI {
         d.classList.toggle('active', d.dataset.color.toLowerCase() === color.toLowerCase());
       });
     }
-
-    const bg = this.toolManager?.ctx?.doc?.backgroundColor;
-    if (bg && bg !== 'transparent' && color.toLowerCase() === bg.toLowerCase()) {
-      events.emit('toast', { message: 'এই রঙ কাগজের সাথে মিলে যাচ্ছে।', type: 'warning' });
-    }
-
     this.updatePreviewDot();
   }
 

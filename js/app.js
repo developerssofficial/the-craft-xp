@@ -380,57 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderer.render();
 
-    // High-precision visibility protection: prevent drawing with invisible or matching colors
-    const normalizeHex = (hex) => {
-      if (!hex || typeof hex !== 'string') return '';
-      let c = hex.trim().toLowerCase().replace('#', '');
-      if (c.length === 3) c = c.split('').map(x => x + x).join('');
-      return c.length === 6 ? '#' + c : '';
-    };
-
-    const getRgb = (hex) => {
-      const n = normalizeHex(hex);
-      if (!n) return null;
-      return {
-        r: parseInt(n.substr(1, 2), 16),
-        g: parseInt(n.substr(3, 2), 16),
-        b: parseInt(n.substr(5, 2), 16)
-      };
-    };
-
-    const getLuminance = (rgb) => {
-      if (!rgb) return 1.0;
-      const a = [rgb.r, rgb.g, rgb.b].map(v => {
-        v /= 255;
-        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      });
-      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
-    };
-
-    const getContrastRatio = (hex1, hex2) => {
-      const rgb1 = getRgb(hex1);
-      const rgb2 = getRgb(hex2);
-      if (!rgb1 || !rgb2) return 21;
-      const l1 = getLuminance(rgb1);
-      const l2 = getLuminance(rgb2);
-      const lighter = Math.max(l1, l2);
-      const darker = Math.min(l1, l2);
-      return (lighter + 0.05) / (darker + 0.05);
-    };
-
-    const activeColor = toolManager.toolState.color || '#18181b';
-    const normActive = normalizeHex(activeColor);
-
-    // Never mutate user's brush color based on canvas background!
-    // If contrast is poor, only show a warning notification. The decision stays with the user.
-    if (newBg !== 'transparent') {
-      const normBg = normalizeHex(newBg);
-      const ratio = getContrastRatio(normActive, normBg);
-      if (ratio < 1.35 || normActive === normBg) {
-        showToastNotification('এই রঙ কাগজের সাথে মিলে যাচ্ছে।', 'warning');
-      }
-    }
-
     if (showToast) {
       const label = newBg === 'transparent' ? 'Transparent (PNG)' : newBg.toUpperCase();
       showToastNotification(`Canvas Background: ${label}`);
