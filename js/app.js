@@ -18,6 +18,7 @@ import { Layer } from './layers/Layer.js';
 import { StorageService } from './core/StorageService.js';
 import { ProjectManager } from './ui/ProjectManager.js';
 import { BrushLibraryUI } from './ui/BrushLibraryUI.js';
+import { FloatingDockDragManager } from './ui/FloatingDockDragManager.js?v=2.8';
 
 document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
@@ -170,6 +171,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (saveProjectBtn) {
     saveProjectBtn.addEventListener('click', () => projectManager.saveProject());
+  }
+
+  // Floating Quick Dock Drag & Minimize Manager
+  const floatingQuickBar = document.getElementById('floatingQuickBar');
+  const quickBarDragHandle = document.getElementById('quickBarDragHandle');
+  const quickBarCollapseBtn = document.getElementById('quickBarCollapseBtn');
+  if (floatingQuickBar) {
+    const floatingDockDragManager = new FloatingDockDragManager(
+      floatingQuickBar,
+      quickBarDragHandle,
+      quickBarCollapseBtn
+    );
+    window.floatingDockDragManager = floatingDockDragManager;
   }
 
   // Toast Notification Helper
