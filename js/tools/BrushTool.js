@@ -23,6 +23,7 @@ export class BrushTool extends BaseTool {
     this.lastX = 0;
     this.lastY = 0;
     this.currentVelocity = 0;
+    this.renderedIndex = 0;
   }
 
   onPointerDown(e, ctx) {
@@ -66,8 +67,11 @@ export class BrushTool extends BaseTool {
       ctx.renderer.beginLiveEraser(ctx.activeLayer.id);
     }
 
-    // Set preview cursor
-    this.renderPreview(ctx.renderer.previewCtx, ctx);
+    // Clear preview canvas and render initial dot
+    ctx.renderer.previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
+    this.renderedIndex = 0;
+    this.renderPreview(ctx.renderer.previewCtx, ctx, 0);
+    this.renderedIndex = 1;
   }
 
   onPointerMove(e, ctx) {
@@ -125,7 +129,9 @@ export class BrushTool extends BaseTool {
       this.rainbowHue = (this.rainbowHue + 3) % 360;
     }
 
-    this.renderPreview(ctx.renderer.previewCtx, ctx);
+    const fromIdx = Math.max(0, this.renderedIndex - 1);
+    this.renderPreview(ctx.renderer.previewCtx, ctx, fromIdx);
+    this.renderedIndex = this.points.length;
   }
 
   onPointerUp(e, ctx) {
@@ -187,6 +193,7 @@ export class BrushTool extends BaseTool {
 
     this.points = [];
     this.symPoints = [];
+    this.renderedIndex = 0;
     ctx.renderer.previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
 
     if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.drawCursorRing) {
@@ -194,17 +201,23 @@ export class BrushTool extends BaseTool {
     }
   }
 
-  renderPreview(previewCtx, ctx) {
-    previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
+  renderPreview(previewCtx, ctx, fromIndex = 0) {
     if (!this.isDrawing || this.points.length === 0) return;
+
+    if (fromIndex === 0) {
+      previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
+    }
 
     const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
     const usePressure = ctx.toolState.pressureDynamics !== false;
     const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+    const settings = this.activeBrushSettings ? { ...this.activeBrushSettings } : null;
+
     const tempStroke = {
       type: 'stroke',
       tool: this.mode,
       brushPreset,
+      brushSettings: settings,
       color: color,
       size: ctx.toolState.size,
       opacity: ctx.toolState.opacity,
@@ -217,6 +230,7 @@ export class BrushTool extends BaseTool {
         type: 'stroke',
         tool: this.mode,
         brushPreset,
+        brushSettings: settings,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
@@ -226,13 +240,14 @@ export class BrushTool extends BaseTool {
 
       // Real-time canvas erasure!
       if (ctx.renderer && ctx.renderer.renderLiveEraser) {
-        ctx.renderer.renderLiveEraser(tempStroke, tempMirror);
+        ctx.renderer.renderLiveEraser(tempStroke, tempMirror, fromIndex);
       }
 
       // Draw high-visibility circular outline for the active eraser tip
       const lastPt = this.points[this.points.length - 1];
       const radius = (tempStroke.size || 8) / 2;
 
+      previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
       previewCtx.save();
       previewCtx.beginPath();
       previewCtx.arc(lastPt.x, lastPt.y, Math.max(1, radius), 0, Math.PI * 2);
@@ -252,20 +267,21 @@ export class BrushTool extends BaseTool {
     }
 
     // Additive tools (brush, pencil, neon, rainbow, highlighter)
-    ctx.renderer.renderStroke(previewCtx, tempStroke);
+    ctx.renderer.renderStroke(previewCtx, tempStroke, fromIndex);
 
     if (ctx.isSymmetry && this.symPoints.length >= 1) {
       const tempMirror = {
         type: 'stroke',
         tool: this.mode,
         brushPreset,
+        brushSettings: settings,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
         usePressure,
         points: this.symPoints
       };
-      ctx.renderer.renderStroke(previewCtx, tempMirror);
+      ctx.renderer.renderStroke(previewCtx, tempMirror, fromIndex);
     }
   }
 
@@ -273,6 +289,7 @@ export class BrushTool extends BaseTool {
     this.isDrawing = false;
     this.points = [];
     this.symPoints = [];
+    this.renderedIndex = 0;
     if (this.currentRenderer) {
       if (this.mode === 'eraser' && this.currentRenderer.endLiveEraser) {
         this.currentRenderer.endLiveEraser();

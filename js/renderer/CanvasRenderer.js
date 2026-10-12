@@ -227,21 +227,23 @@ export class CanvasRenderer {
    * Renders the in-progress eraser stroke on the active layer in real-time,
    * cutting out pixels instantaneously at 60-120 FPS.
    */
-  renderLiveEraser(tempStroke, tempMirror = null) {
+  renderLiveEraser(tempStroke, tempMirror = null, fromIndex = 0) {
     if (!this.isLiveErasing || !this.targetLiveLayer) return;
     const width = this.doc.width;
     const height = this.doc.height;
 
-    // 1. Copy the pristine layer snapshot into the layer working buffer
-    this.layerCtx.clearRect(0, 0, width, height);
-    this.layerCtx.drawImage(this.liveLayerBuffer, 0, 0);
+    // 1. Copy the pristine layer snapshot into the layer working buffer once at stroke start
+    if (fromIndex === 0) {
+      this.layerCtx.clearRect(0, 0, width, height);
+      this.layerCtx.drawImage(this.liveLayerBuffer, 0, 0);
+    }
 
-    // 2. Apply destination-out eraser stroke(s) live onto the working layer buffer
+    // 2. Apply destination-out eraser stroke(s) incrementally
     if (tempStroke) {
-      this.renderElement(this.layerCtx, tempStroke);
+      this.renderStroke(this.layerCtx, tempStroke, fromIndex);
     }
     if (tempMirror) {
-      this.renderElement(this.layerCtx, tempMirror);
+      this.renderStroke(this.layerCtx, tempMirror, fromIndex);
     }
 
     // 3. Composite onto master paintCanvas
@@ -377,7 +379,7 @@ export class CanvasRenderer {
     ctx.restore();
   }
 
-  drawPath(ctx, pts, size) {
+  drawPath(ctx, pts, size, fromIndex = 0) {
     if (!pts || pts.length === 0) return;
     if (pts.length === 1) {
       ctx.beginPath();
@@ -385,10 +387,12 @@ export class CanvasRenderer {
       ctx.fill();
       return;
     }
-    if (pts.length === 2) {
+    if (pts.length === 2 || (fromIndex > 0 && fromIndex < pts.length - 1)) {
+      const idx0 = fromIndex > 0 ? fromIndex : 0;
+      const idx1 = fromIndex > 0 ? fromIndex + 1 : 1;
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.moveTo(pts[idx0].x, pts[idx0].y);
+      ctx.lineTo(pts[idx1].x, pts[idx1].y);
       ctx.stroke();
       return;
     }
@@ -406,7 +410,7 @@ export class CanvasRenderer {
     ctx.stroke();
   }
 
-  renderStroke(ctx, el) {
+  renderStroke(ctx, el, fromIndex = 0) {
     if (!el.points || el.points.length === 0) return;
 
     ctx.save();
@@ -419,7 +423,7 @@ export class CanvasRenderer {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
       ctx.fillStyle = 'rgba(0,0,0,1)';
-      this.drawPath(ctx, el.points, baseSize);
+      this.drawPath(ctx, el.points, baseSize, fromIndex);
       ctx.restore();
       return;
     } else if (el.tool === 'highlighter') {
@@ -429,7 +433,7 @@ export class CanvasRenderer {
       ctx.fillStyle = el.color;
       ctx.lineCap = 'square';
       ctx.shadowBlur = 0;
-      this.drawPath(ctx, el.points, baseSize);
+      this.drawPath(ctx, el.points, baseSize, fromIndex);
       ctx.restore();
       return;
     } else if (el.tool === 'neon') {
@@ -439,12 +443,12 @@ export class CanvasRenderer {
       ctx.fillStyle = el.color;
       ctx.shadowBlur = baseSize * 2;
       ctx.shadowColor = el.color;
-      this.drawPath(ctx, el.points, baseSize);
+      this.drawPath(ctx, el.points, baseSize, fromIndex);
       ctx.restore();
       return;
     } else if (el.brushPreset || el.tool === 'brush') {
       ctx.restore();
-      brushEngine.renderStroke(ctx, el);
+      brushEngine.renderStroke(ctx, el, fromIndex);
       return;
     } else {
       ctx.globalCompositeOperation = 'source-over';
@@ -454,7 +458,7 @@ export class CanvasRenderer {
     }
 
     // Render the genuine stroke in true color with no artificial halo or underlay
-    this.drawPath(ctx, el.points, baseSize);
+    this.drawPath(ctx, el.points, baseSize, fromIndex);
 
     ctx.restore();
   }
