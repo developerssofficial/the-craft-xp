@@ -26,6 +26,9 @@ export class ToolDockUI {
         const toolId = btn.dataset.tool;
         if (toolId) {
           this.toolManager.setActiveTool(toolId);
+          if (window.innerWidth <= 768) {
+            this.toggleCollapse(true);
+          }
         }
       });
     });
@@ -81,5 +84,6 @@ export class ToolDockUI {
     if (this.edgeTrigger) {
       this.edgeTrigger.classList.toggle('active', this.isCollapsed);
     }
+    events.emit('dock:toggled', { isCollapsed: this.isCollapsed });
   }
 }

@@ -209,5 +209,6 @@ export class PropertiesPanelUI {
     if (this.edgeTrigger) {
       this.edgeTrigger.classList.toggle('active', this.isCollapsed);
     }
+    events.emit('panel:toggled', { isCollapsed: this.isCollapsed });
   }
 }

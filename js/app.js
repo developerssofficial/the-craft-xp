@@ -196,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeBrushBadge = document.getElementById('activeBrushBadge');
   const activeBrushPanelLabel = document.getElementById('activeBrushPanelLabel');
 
+  const headerBrushLibBtn = document.getElementById('headerBrushLibBtn');
+
   const openBrushLibHandler = (e) => {
     if (e) e.preventDefault();
     brushLibraryUI.open();
@@ -204,6 +206,34 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openBrushLibBtn) openBrushLibBtn.addEventListener('click', openBrushLibHandler);
   if (dockBrushLibBtn) dockBrushLibBtn.addEventListener('click', openBrushLibHandler);
   if (panelOpenBrushLibBtn) panelOpenBrushLibBtn.addEventListener('click', openBrushLibHandler);
+  if (headerBrushLibBtn) headerBrushLibBtn.addEventListener('click', openBrushLibHandler);
+
+  // Mobile Drawer Backdrop & Default Mobile Portrait Setup
+  const drawerBackdrop = document.getElementById('drawerBackdrop');
+  const syncDrawerBackdrop = () => {
+    if (window.innerWidth <= 768 && drawerBackdrop) {
+      const isAnyOpen = !toolDockUI.isCollapsed || !propertiesPanelUI.isCollapsed;
+      drawerBackdrop.classList.toggle('active', isAnyOpen);
+    } else if (drawerBackdrop) {
+      drawerBackdrop.classList.remove('active');
+    }
+  };
+
+  events.on('dock:toggled', syncDrawerBackdrop);
+  events.on('panel:toggled', syncDrawerBackdrop);
+
+  if (drawerBackdrop) {
+    drawerBackdrop.addEventListener('click', () => {
+      toolDockUI.toggleCollapse(true);
+      propertiesPanelUI.toggleCollapse(true);
+    });
+  }
+
+  // On mobile / small screens, start with full-screen vertical portrait canvas
+  if (window.innerWidth <= 768) {
+    toolDockUI.toggleCollapse(true);
+    propertiesPanelUI.toggleCollapse(true);
+  }
 
   events.on('brush:selected', ({ brushId, brush }) => {
     if (activeBrushBadge) activeBrushBadge.textContent = brush.name;

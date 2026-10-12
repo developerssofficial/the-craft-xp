@@ -2139,5 +2139,309 @@ kbd {
 }
 .brush-preset-quick-btn i { font-size: 11px; color: var(--accent); }
 
+/* Desktop: hide mobile-only brush button */
+.mobile-brush-btn {
+  display: none;
+}
+
+/* ==========================================================
+   Mobile-Friendly Vertical / Portrait Drawing Mode (<= 768px)
+   ========================================================== */
+@media (max-width: 768px) {
+  /* 1. Header: Slim 48px clean single-row mobile bar */
+  .app-header {
+    height: 48px;
+    padding: 0 10px;
+    gap: 4px;
+    justify-content: space-between;
+  }
+
+  .header-left {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .brand-name, .brand-tag {
+    display: none; /* Keep just the glowing logo badge on phone */
+  }
+
+  .nav-switch-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .nav-switch-btn span {
+    display: none; /* Just film icon on phone */
+  }
+
+  .quick-history {
+    gap: 2px;
+  }
+  .quick-history .icon-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+  #clearBtn {
+    display: none;
+  }
+
+  /* Hide bulky desktop center controls from the mobile header */
+  .header-center {
+    display: none !important;
+  }
+
+  .header-right {
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .mobile-brush-btn {
+    display: flex;
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .save-status-badge,
+  #openProjectBtn,
+  #saveProjectBtn,
+  label[for="imageUploadInput"] {
+    display: none !important;
+  }
+
+  .dropdown-wrapper .btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  .dropdown-wrapper .btn span,
+  .dropdown-wrapper .caret-icon {
+    display: none; /* Export icon only */
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .header-separator {
+    display: none;
+  }
+
+  /* 2. Full-Screen Edge-to-Edge Vertical Canvas */
+  .app-workspace {
+    position: relative;
+    overflow: hidden;
+    height: calc(100vh - 48px);
+    width: 100vw;
+  }
+
+  .canvas-stage {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute;
+    inset: 0;
+  }
+
+  /* 3. Slide-out Overlay Tool Dock */
+  .tool-dock {
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    left: 0;
+    width: 58px;
+    background: rgba(14, 16, 25, 0.96);
+    border-right: 1px solid var(--border-color);
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 100;
+    padding: 10px 4px;
+    transform: translateX(0);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tool-dock.collapsed {
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  /* Edge triggers on mobile */
+  .edge-tab {
+    display: none !important;
+  }
+
+  /* 4. Slide-out Overlay Properties Panel */
+  .properties-panel {
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    right: 0;
+    width: 85vw;
+    max-width: 330px;
+    background: rgba(14, 16, 25, 0.96);
+    border-left: 1px solid var(--border-color);
+    box-shadow: -4px 0 25px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 100;
+    padding: 12px;
+    transform: translateX(0);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .properties-panel.collapsed {
+    transform: translateX(100%);
+    pointer-events: none;
+  }
+
+  /* Mobile Drawer Backdrop */
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    top: 48px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 95;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .drawer-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* 5. Mobile Floating Bottom Bar */
+  .floating-quick-bar {
+    bottom: 10px;
+    max-width: 95vw;
+    padding: 5px 10px;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  }
+
+  .floating-quick-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-tools {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .quick-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  .bar-separator {
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .quick-colors {
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .quick-swatch {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  /* 6. Mobile 180+ Brushes Modal */
+  .brush-library-overlay {
+    padding: 8px;
+  }
+
+  .brush-library-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 92vh !important;
+    max-height: 92vh !important;
+    border-radius: var(--radius-md);
+  }
+
+  .brush-lib-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .brush-lib-title-wrap h3 {
+    font-size: 14px;
+  }
+
+  .brush-lib-body {
+    flex-direction: column; /* Stack category tabs horizontally above the brush grid */
+    overflow: hidden;
+  }
+
+  .brush-lib-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding: 8px 10px;
+    gap: 6px;
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .brush-cat-btn {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .brush-grid-container {
+    padding: 10px;
+  }
+
+  .brush-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+
+  .brush-card {
+    padding: 8px 6px;
+  }
+
+  .brush-card-preview-wrap {
+    height: 32px;
+  }
+
+  .brush-card-name {
+    font-size: 11px;
+  }
+
+  .brush-lib-footer {
+    padding: 8px 12px;
+  }
+
+  .active-brush-pill {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .done-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+}
+
+
 
 

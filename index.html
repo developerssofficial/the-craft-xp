@@ -12,7 +12,7 @@
   
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.7">
   <link rel="stylesheet" href="animation.css">
 </head>
 <body class="dark-theme">
@@ -170,7 +170,10 @@
         </div>
       </div>
 
-      <div class="header-separator"></div>
+      <!-- Mobile & Quick Brush Library Button -->
+      <button id="headerBrushLibBtn" class="icon-btn mobile-brush-btn" title="180+ Brushes Library">
+        <i class="fa-solid fa-paintbrush"></i>
+      </button>
 
       <!-- Toggle Right Sidebar Button -->
       <button id="toggleRightPanelBtn" class="icon-btn active-panel-toggle" title="Toggle Properties Panel">
@@ -181,6 +184,9 @@
 
   <!-- Workspace Container -->
   <div class="app-workspace" id="appWorkspace">
+    <!-- Mobile Drawer Backdrop Overlay -->
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
     <!-- Left Floating Tool Dock -->
     <nav class="tool-dock" id="toolDock">
       <div class="dock-collapse-header">
@@ -515,6 +521,6 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast-popup"></div>
 
-  <script type="module" src="js/app.js?v=2.6"></script>
+  <script type="module" src="js/app.js?v=2.7"></script>
 </body>
 </html>
