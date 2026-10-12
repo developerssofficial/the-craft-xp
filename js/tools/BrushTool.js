@@ -5,6 +5,7 @@
  */
 import { BaseTool } from './BaseTool.js';
 import { DrawCommand } from '../core/commands/DrawCommand.js';
+import { brushEngine } from '../brushes/ProceduralBrushEngine.js';
 
 export class BrushTool extends BaseTool {
   constructor(mode = 'brush') {
@@ -15,6 +16,13 @@ export class BrushTool extends BaseTool {
     this.symPoints = [];
     this.rainbowHue = 0;
     this.currentRenderer = null;
+    this.activeBrushSettings = null;
+    this.stabilizedX = 0;
+    this.stabilizedY = 0;
+    this.lastTime = 0;
+    this.lastX = 0;
+    this.lastY = 0;
+    this.currentVelocity = 0;
   }
 
   onPointerDown(e, ctx) {
@@ -28,12 +36,27 @@ export class BrushTool extends BaseTool {
       ctx.renderer.clearCursorRing();
     }
 
-    const p = { x: ctx.x, y: ctx.y, pressure: ctx.pressure };
+    this.lastTime = performance.now();
+    this.lastX = ctx.x;
+    this.lastY = ctx.y;
+    this.currentVelocity = 0;
+    this.stabilizedX = ctx.x;
+    this.stabilizedY = ctx.y;
+
+    const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+    this.activeBrushSettings = brushPreset ? brushEngine.getBrushSettings(brushPreset) : null;
+
+    let initPressure = ctx.pressure !== undefined && ctx.pressure > 0 ? ctx.pressure : 0.5;
+    if (this.activeBrushSettings?.sizeControl === 'OFF') {
+      initPressure = 1.0;
+    }
+
+    const p = { x: ctx.x, y: ctx.y, pressure: initPressure };
     this.points = [p];
 
     if (ctx.isSymmetry) {
       const midX = ctx.doc.width / 2;
-      this.symPoints = [{ x: midX * 2 - ctx.x, y: ctx.y, pressure: ctx.pressure }];
+      this.symPoints = [{ x: midX * 2 - ctx.x, y: ctx.y, pressure: initPressure }];
     } else {
       this.symPoints = [];
     }
@@ -58,12 +81,44 @@ export class BrushTool extends BaseTool {
       return;
     }
 
-    const p = { x: ctx.x, y: ctx.y, pressure: ctx.pressure };
+    const now = performance.now();
+    const dt = Math.max(1, now - (this.lastTime || now));
+    const dist = Math.hypot(ctx.x - this.lastX, ctx.y - this.lastY);
+    const speed = dist / dt; // px per ms
+    this.currentVelocity = this.currentVelocity * 0.7 + speed * 0.3;
+    this.lastTime = now;
+    this.lastX = ctx.x;
+    this.lastY = ctx.y;
+
+    let targetX = ctx.x;
+    let targetY = ctx.y;
+    const settings = this.activeBrushSettings;
+
+    // Apply digital stabilizer smoothing
+    if (settings && settings.stabilizer > 0) {
+      const weight = Math.max(0.08, 1 - Math.min(0.9, settings.stabilizer * 0.9));
+      this.stabilizedX = this.stabilizedX * (1 - weight) + ctx.x * weight;
+      this.stabilizedY = this.stabilizedY * (1 - weight) + ctx.y * weight;
+      targetX = this.stabilizedX;
+      targetY = this.stabilizedY;
+    }
+
+    let effPressure = ctx.pressure !== undefined && ctx.pressure > 0 ? ctx.pressure : 0.5;
+    if (settings) {
+      if (settings.sizeControl === 'OFF') {
+        effPressure = 1.0;
+      } else if (settings.sizeControl === 'Velocity') {
+        const speedNorm = Math.min(1.0, this.currentVelocity / 3.0);
+        effPressure = Math.max(0.2, 1.0 - speedNorm * 0.7);
+      }
+    }
+
+    const p = { x: targetX, y: targetY, pressure: effPressure };
     this.points.push(p);
 
     if (ctx.isSymmetry) {
       const midX = ctx.doc.width / 2;
-      this.symPoints.push({ x: midX * 2 - ctx.x, y: ctx.y, pressure: ctx.pressure });
+      this.symPoints.push({ x: midX * 2 - targetX, y: targetY, pressure: effPressure });
     }
 
     if (this.mode === 'rainbow') {
@@ -95,10 +150,13 @@ export class BrushTool extends BaseTool {
       const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
       const usePressure = ctx.toolState.pressureDynamics !== false;
       const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+      const settings = this.activeBrushSettings ? { ...this.activeBrushSettings } : null;
+
       const mainStroke = {
         type: 'stroke',
         tool: this.mode,
         brushPreset,
+        brushSettings: settings,
         color: color,
         size: ctx.toolState.size,
         opacity: ctx.toolState.opacity,
@@ -112,6 +170,7 @@ export class BrushTool extends BaseTool {
           type: 'stroke',
           tool: this.mode,
           brushPreset,
+          brushSettings: settings,
           color: color,
           size: ctx.toolState.size,
           opacity: ctx.toolState.opacity,

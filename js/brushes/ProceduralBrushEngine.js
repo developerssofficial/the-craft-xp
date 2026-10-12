@@ -257,6 +257,15 @@ export const BRUSH_CATALOG = {
   ]
 };
 
+export const DEFAULT_BRUSH_SETTINGS = {
+  sizeControl: 'OFF',        // 'OFF' | 'Pressure' | 'Velocity'
+  minSize: 1.0,              // 0.5 to 20 px
+  opacityControl: 'OFF',     // 'OFF' | 'Pressure' | 'Velocity'
+  autoColor: false,          // false | true
+  stabilizer: 0.0,           // 0.0 to 1.0
+  isFavorite: false          // false | true
+};
+
 /**
  * Procedural Brush Engine
  * Handles rendering strokes onto any 2D canvas context.
@@ -264,6 +273,60 @@ export const BRUSH_CATALOG = {
 export class ProceduralBrushEngine {
   constructor() {
     this.stampCache = new Map();
+    this.settingsCache = new Map();
+    this.storageKey = 'thecraft_brush_settings_v2';
+    this.loadAllSettings();
+  }
+
+  loadAllSettings() {
+    try {
+      const raw = localStorage.getItem(this.storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        for (const [k, v] of Object.entries(parsed)) {
+          this.settingsCache.set(k, { ...DEFAULT_BRUSH_SETTINGS, ...v });
+        }
+      }
+    } catch (_) {}
+  }
+
+  saveAllSettings() {
+    try {
+      const obj = {};
+      for (const [k, v] of this.settingsCache.entries()) {
+        obj[k] = v;
+      }
+      localStorage.setItem(this.storageKey, JSON.stringify(obj));
+    } catch (_) {}
+  }
+
+  getBrushSettings(brushId) {
+    if (!brushId) return { ...DEFAULT_BRUSH_SETTINGS };
+    if (!this.settingsCache.has(brushId)) {
+      this.settingsCache.set(brushId, { ...DEFAULT_BRUSH_SETTINGS });
+    }
+    return this.settingsCache.get(brushId);
+  }
+
+  updateBrushSetting(brushId, key, value) {
+    const s = this.getBrushSettings(brushId);
+    s[key] = value;
+    this.settingsCache.set(brushId, s);
+    this.saveAllSettings();
+    return s;
+  }
+
+  getFavorites() {
+    const favs = [];
+    for (const [catId, list] of Object.entries(BRUSH_CATALOG)) {
+      for (const b of list) {
+        const s = this.getBrushSettings(b.id);
+        if (s.isFavorite) {
+          favs.push({ ...b, cat: catId });
+        }
+      }
+    }
+    return favs;
   }
 
   getBrushById(brushId) {
@@ -284,14 +347,31 @@ export class ProceduralBrushEngine {
 
     const brush = this.getBrushById(stroke.brushPreset);
     const color = stroke.color || '#6366f1';
-    const baseSize = stroke.size || 8;
-    const baseOpacity = stroke.opacity ?? 1.0;
+    const settings = stroke.brushSettings || this.getBrushSettings(stroke.brushPreset);
+
+    let baseSize = stroke.size || 8;
+    if (settings && typeof settings.minSize === 'number') {
+      baseSize = Math.max(settings.minSize, baseSize);
+    }
+
+    let baseOpacity = stroke.opacity ?? 1.0;
+    if (settings && settings.opacityControl === 'Pressure' && pts.length > 0) {
+      const avgP = (pts[0].pressure || 0.5);
+      baseOpacity = Math.max(0.08, baseOpacity * avgP);
+    }
+
+    let usePressure = stroke.usePressure;
+    if (settings && settings.sizeControl === 'OFF') {
+      usePressure = false;
+    } else if (settings && (settings.sizeControl === 'Pressure' || settings.sizeControl === 'Velocity')) {
+      usePressure = true;
+    }
 
     ctx.save();
     ctx.globalAlpha = baseOpacity;
 
     if (!brush) {
-      this.renderStandardStroke(ctx, pts, color, baseSize, stroke.usePressure);
+      this.renderStandardStroke(ctx, pts, color, baseSize, usePressure);
       ctx.restore();
       return;
     }
