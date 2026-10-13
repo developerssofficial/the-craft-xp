@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/developerssofficial/the-craft-xp#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "mongodb": "^7.7.0"
   }
 }

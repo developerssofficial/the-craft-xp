@@ -5,6 +5,7 @@
  */
 import { AnimationProject } from './AnimationModel.js';
 import { events } from '../core/EventBus.js';
+import { supabaseService } from '../core/supabaseClient.js';
 
 const ANIM_DB_NAME = 'TheCraftAnimationDB';
 const ANIM_DB_VERSION = 1;
@@ -89,11 +90,13 @@ export class AnimationStorage {
 
     try {
       const serializedData = this.project.toJSON();
+      const user = supabaseService.getCurrentUser();
+      const sessionKey = user ? `anim_${user.id}` : ANIM_AUTOSAVE_KEY;
 
       await new Promise((resolve, reject) => {
         const tx = this.db.transaction(ANIM_STORE_NAME, 'readwrite');
         const store = tx.objectStore(ANIM_STORE_NAME);
-        const req = store.put(serializedData, ANIM_AUTOSAVE_KEY);
+        const req = store.put(serializedData, sessionKey);
         req.onsuccess = () => resolve();
         req.onerror = (e) => reject(e.target.error);
       });
@@ -112,13 +115,33 @@ export class AnimationStorage {
       await this.initDB();
     }
 
+    const user = supabaseService.getCurrentUser();
+    const sessionKey = user ? `anim_${user.id}` : ANIM_AUTOSAVE_KEY;
+
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction(ANIM_STORE_NAME, 'readonly');
       const store = tx.objectStore(ANIM_STORE_NAME);
-      const req = store.get(ANIM_AUTOSAVE_KEY);
+      const req = store.get(sessionKey);
 
       req.onsuccess = () => {
-        const record = req.result;
+        let record = req.result;
+        if (!record && sessionKey !== ANIM_AUTOSAVE_KEY) {
+          const fallbackReq = store.get(ANIM_AUTOSAVE_KEY);
+          fallbackReq.onsuccess = () => {
+            record = fallbackReq.result;
+            if (!record || !record.frames || record.frames.length === 0) {
+              resolve(null);
+              return;
+            }
+            try {
+              resolve(AnimationProject.fromJSON(record));
+            } catch (err) {
+              resolve(null);
+            }
+          };
+          return;
+        }
+
         if (!record || !record.frames || record.frames.length === 0) {
           resolve(null);
           return;

@@ -82,60 +82,71 @@ export class ProjectManager {
         throw new Error('Invalid .craft project file format');
       }
 
-      // Reconstruct document
-      this.doc.backgroundColor = data.backgroundColor || '#ffffff';
-      this.doc.nextLayerNumber = data.nextLayerNumber || (data.layers.length + 1);
-
-      // Reconstruct layers
-      const reconstructedLayers = [];
-      for (const layerData of data.layers) {
-        const layer = new Layer({
-          id: layerData.id,
-          name: layerData.name,
-          visible: layerData.visible !== false,
-          locked: !!layerData.locked,
-          opacity: layerData.opacity !== undefined ? layerData.opacity : 1.0,
-          blendMode: layerData.blendMode || 'source-over',
-          type: layerData.type || 'vector',
-          elements: Array.isArray(layerData.elements) ? layerData.elements : []
-        });
-
-        if (layerData.rasterDataUrl) {
-          await new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-              layer.ensureRasterCanvas(this.doc.width, this.doc.height);
-              layer.rasterCtx.drawImage(img, 0, 0);
-              resolve();
-            };
-            img.onerror = () => resolve();
-            img.src = layerData.rasterDataUrl;
-          });
-        }
-
-        reconstructedLayers.push(layer);
-      }
-
-      this.doc.layers = reconstructedLayers;
-      this.doc.activeLayerId = data.activeLayerId && reconstructedLayers.some(l => l.id === data.activeLayerId)
-        ? data.activeLayerId
-        : reconstructedLayers[0].id;
-
-      // Clear history
-      this.commandManager.clear();
-
-      // Render canvas and update UI
-      this.renderer.render();
-      events.emit('document:changed');
-      events.emit('toast', { message: `Opened project: ${file.name}` });
-
-      // Trigger autosave
-      if (this.storageService) {
-        this.storageService.scheduleAutosave(300);
-      }
+      await this.loadProjectData(data, file.name);
     } catch (err) {
       console.error('[ProjectManager] Error opening project file:', err);
       events.emit('toast', { message: 'Failed to open project file', type: 'danger' });
+    }
+  }
+
+  async loadProjectData(data, title = 'Untitled Project', cloudId = null) {
+    if (!data.layers || !Array.isArray(data.layers)) {
+      throw new Error('Invalid project data format');
+    }
+
+    this.currentCloudId = cloudId;
+    this.currentProjectTitle = title;
+
+    // Reconstruct document
+    this.doc.backgroundColor = data.backgroundColor || '#ffffff';
+    this.doc.nextLayerNumber = data.nextLayerNumber || (data.layers.length + 1);
+
+    // Reconstruct layers
+    const reconstructedLayers = [];
+    for (const layerData of data.layers) {
+      const layer = new Layer({
+        id: layerData.id,
+        name: layerData.name,
+        visible: layerData.visible !== false,
+        locked: !!layerData.locked,
+        opacity: layerData.opacity !== undefined ? layerData.opacity : 1.0,
+        blendMode: layerData.blendMode || 'source-over',
+        type: layerData.type || 'vector',
+        elements: Array.isArray(layerData.elements) ? layerData.elements : []
+      });
+
+      if (layerData.rasterDataUrl) {
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            layer.ensureRasterCanvas(this.doc.width, this.doc.height);
+            layer.rasterCtx.drawImage(img, 0, 0);
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = layerData.rasterDataUrl;
+        });
+      }
+
+      reconstructedLayers.push(layer);
+    }
+
+    this.doc.layers = reconstructedLayers;
+    this.doc.activeLayerId = data.activeLayerId && reconstructedLayers.some(l => l.id === data.activeLayerId)
+      ? data.activeLayerId
+      : reconstructedLayers[0].id;
+
+    // Clear history
+    this.commandManager.clear();
+
+    // Render canvas and update UI
+    this.renderer.render();
+    events.emit('document:changed');
+    events.emit('toast', { message: `Loaded: ${title}` });
+
+    // Trigger autosave
+    if (this.storageService) {
+      this.storageService.scheduleAutosave(300);
     }
   }
 }

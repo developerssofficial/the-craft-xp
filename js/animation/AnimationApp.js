@@ -18,6 +18,7 @@ import { TimelineUI } from './TimelineUI.js';
 import { AnimationLayersUI } from './AnimationLayersUI.js';
 import { AnimationExporter } from './AnimationExporter.js';
 import { BrushLibraryUI } from '../ui/BrushLibraryUI.js';
+import { AuthModal } from '../ui/AuthModal.js';
 
 export class AnimationApp {
   constructor() {
@@ -67,6 +68,9 @@ export class AnimationApp {
     if (saveBadge) {
       this.storage.setStatusBadgeElement(saveBadge);
     }
+
+    // Supabase Auth Integration
+    this.authModal = new AuthModal();
 
     // Try restoring saved animation project from IndexedDB
     try {

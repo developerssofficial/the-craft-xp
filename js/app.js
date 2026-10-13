@@ -19,6 +19,8 @@ import { StorageService } from './core/StorageService.js';
 import { ProjectManager } from './ui/ProjectManager.js';
 import { BrushLibraryUI } from './ui/BrushLibraryUI.js';
 import { FloatingDockDragManager } from './ui/FloatingDockDragManager.js?v=2.8';
+import { AuthModal } from './ui/AuthModal.js';
+import { UserGalleryModal } from './ui/UserGalleryModal.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
@@ -172,6 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveProjectBtn) {
     saveProjectBtn.addEventListener('click', () => projectManager.saveProject());
   }
+
+  // User Gallery Modal & Auth Modal (Supabase Private Cloud)
+  const userGalleryModal = new UserGalleryModal(projectManager);
+  const authModal = new AuthModal(userGalleryModal);
 
   // Floating Quick Dock Drag & Minimize Manager
   const floatingQuickBar = document.getElementById('floatingQuickBar');
