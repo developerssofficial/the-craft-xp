@@ -80,7 +80,7 @@ export class AuthModal {
     this.userNavBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!this.currentUser) {
-        this.openModal('signin');
+        window.location.href = '/login.html';
       } else {
         this.userDropdownEl.classList.toggle('hidden');
       }

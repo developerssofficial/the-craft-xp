@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Craft — Artist Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --paper:#fbf6ea;
+    --paper-2:#f3ead5;
+    --ink:#2b2a33;
+    --ink-soft:#6b6877;
+    --coral:#ff6b4a;
+    --yellow:#f7c948;
+    --blue:#3b82f6;
+    --skin:#ffe3c4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Patrick Hand',cursive;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(43,42,51,.13) 1px, transparent 0);
+    background-size:24px 24px;
+    display:grid;
+    place-items:center;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ---------- back to canvas link ---------- */
+  .back-link{
+    position:absolute;top:20px;left:24px;z-index:10;
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'Caveat',cursive;font-size:1.4rem;font-weight:700;
+    color:var(--ink);text-decoration:none;
+    background:rgba(255,255,255,.6);padding:6px 16px;
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    border:2px solid var(--ink);
+    box-shadow:3px 3px 0 var(--coral);
+    transition:transform .15s,box-shadow .15s;
+  }
+  .back-link:hover{
+    transform:translate(-2px,-2px) rotate(-1deg);
+    box-shadow:5px 5px 0 var(--coral);
+  }
+
+  /* ---------- floating background doodles ---------- */
+  .doodles{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .doodle{position:absolute;fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:.28}
+  .doodle path,.doodle circle{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 6s ease-in-out infinite alternate}
+  .doodle.c1 path,.doodle.c1 circle{stroke:var(--coral)}
+  .doodle.c2 path,.doodle.c2 circle{stroke:var(--blue)}
+  .doodle.c3 path,.doodle.c3 circle{stroke:var(--yellow)}
+  .d1{top:8%;left:6%;width:90px;animation:float 9s ease-in-out infinite}
+  .d2{top:14%;right:8%;width:110px;animation:float 11s ease-in-out infinite .5s}
+  .d3{bottom:10%;left:10%;width:120px;animation:float 10s ease-in-out infinite 1s}
+  .d4{bottom:14%;right:6%;width:90px;animation:float 8s ease-in-out infinite 1.5s}
+  .d5{top:48%;left:2%;width:70px;animation:float 12s ease-in-out infinite .3s}
+  .d6{top:4%;left:46%;width:80px;animation:float 9s ease-in-out infinite .8s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-14px) rotate(4deg)}}
+
+  /* ---------- layout ---------- */
+  .stage{
+    position:relative;z-index:1;
+    width:min(960px,94vw);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:28px;
+    align-items:center;
+    padding:40px 0;
+  }
+  @media (max-width:760px){
+    .stage{grid-template-columns:1fr;gap:12px;padding:60px 0 20px}
+    .scene{max-width:240px;margin:0 auto}
+  }
+
+  /* ---------- character ---------- */
+  .scene{position:relative;text-align:center}
+  .scene svg{width:100%;height:auto;overflow:hidden;display:block}
+  .scene .tagline{
+    font-family:'Caveat',cursive;font-size:2rem;font-weight:700;line-height:1;margin-top:4px;
+    transform:rotate(-2deg);
+  }
+  .scene .tagline small{display:block;font-family:'Patrick Hand';font-size:1.05rem;font-weight:400;color:var(--ink-soft);margin-top:6px}
+  .ink{fill:none;stroke:var(--ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+  .ink-thin{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .draw-in{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 2.2s ease forwards}
+  .draw-in.d2s{animation-delay:.5s}
+  .draw-in.d3s{animation-delay:1s}
+  .eye-white{fill:#fff}
+  .pupil{fill:var(--ink);transition:transform .08s linear}
+  .eye{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+  .hand{transition:transform .55s cubic-bezier(.34,1.56,.64,1);transform:translateY(240px)}
+  .covering .hand{transform:translateY(0)}
+  .covering.peek .hand.right{transform:translateY(240px)}
+  .head{transform-box:fill-box;transform-origin:50% 100%;animation:breathe 4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015,1.025)}}
+  .rb{fill:none;stroke-width:8;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:rb 7s ease-in-out infinite}
+  .r1{stroke:#ff6b4a}.r2{stroke:#f7c948;animation-delay:.25s}.r3{stroke:#5cc98a;animation-delay:.5s}.r4{stroke:#3b82f6;animation-delay:.75s}
+  @keyframes rb{0%{stroke-dashoffset:1}30%,88%{stroke-dashoffset:0}100%{stroke-dashoffset:1}}
+  .sun,.rainbow{transition:opacity .4s}
+  .rainbow{opacity:0}.rainbow .rb{stroke-width:5}
+  .happy .rainbow{opacity:1}
+  .birds{animation:fly 9s linear infinite}
+  @keyframes fly{0%{transform:translateX(-30px)}100%{transform:translateX(150px)}}
+  .palm .leaves{transform-box:fill-box;transform-origin:50% 100%;animation:sway 3.5s ease-in-out infinite}
+  @keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg)}}
+  .smoke{stroke-dasharray:60;animation:smoke 3s linear infinite;opacity:.6}
+  @keyframes smoke{0%{stroke-dashoffset:60;opacity:0}30%{opacity:.7}100%{stroke-dashoffset:0;opacity:0}}
+  .boat{animation:rock 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+  @keyframes rock{0%,100%{transform:rotate(-3deg) translateX(-3px)}50%{transform:rotate(3deg) translateX(5px)}}
+  .sun-rays{transform-box:fill-box;transform-origin:center;animation:spinr 12s linear infinite}
+  @keyframes spinr{to{transform:rotate(360deg)}}
+  .cloud{animation:bob 4s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateX(0)}50%{transform:translateX(7px)}}
+  .rain{opacity:0;fill:none;stroke:var(--blue);stroke-width:3;stroke-linecap:round;transition:opacity .3s}
+  .rain path{animation:fall .7s linear infinite}
+  @keyframes fall{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+  .sad .rain{opacity:1}
+  .sad .rainbow,.sad .sun{opacity:.12}
+  .happy .dot{animation:pop .6s ease}
+  .dot{transform-box:fill-box;transform-origin:center}
+  .tilt{transform-box:fill-box;transform-origin:50% 100%;transition:transform .3s ease}
+  .fx{opacity:0;transform-box:fill-box;transform-origin:center;transition:opacity .3s}
+  .happy .happy-fx{opacity:1;animation:pop .6s ease}
+  .sad .sad-fx{opacity:1;animation:pop .6s ease}
+  .happy .tilt{animation:hop .6s ease}
+  @keyframes pop{0%{transform:scale(.3) rotate(-20deg)}60%{transform:scale(1.2) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+  @keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-14px)}}
+  .shake{animation:shake .5s}
+  @keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+  /* ---------- card ---------- */
+  .card-wrap{position:relative}
+  .card{
+    position:relative;
+    background:rgba(255,255,255,.85);
+    padding:34px 34px 26px;
+    transform:rotate(.6deg);
+    opacity:0;animation:rise .8s .3s ease forwards;
+    backdrop-filter:blur(8px);
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(24px) rotate(.6deg)}to{opacity:1;transform:translateY(0) rotate(.6deg)}}
+  .card .border{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .card .border path{fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+  .card .border path.ghost{stroke-width:1.4;opacity:.35}
+  .tape{
+    position:absolute;top:-14px;left:50%;width:110px;height:30px;
+    transform:translateX(-50%) rotate(-3deg);
+    background:rgba(247,201,72,.75);
+    border-left:3px dotted rgba(0,0,0,.15);border-right:3px dotted rgba(0,0,0,.15);
+  }
+  h1{
+    font-family:'Caveat',cursive;font-size:2.8rem;line-height:1;font-weight:700;
+    position:relative;display:inline-block;
+  }
+  h1 svg{position:absolute;left:-4px;bottom:-12px;width:calc(100% + 8px);height:14px;overflow:visible}
+  h1 svg path{fill:none;stroke:var(--coral);stroke-width:4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s 1.2s ease forwards}
+  .sub{color:var(--ink-soft);margin:14px 0 18px;font-size:1.15rem}
+
+  /* Google Button in Sketch Style */
+  .google-sketch-btn{
+    width:100%;
+    background:#fff;
+    border:2.5px solid var(--ink);
+    border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+    padding:10px 16px;
+    font-family:'Caveat',cursive;font-size:1.45rem;font-weight:700;
+    color:var(--ink);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    box-shadow:3px 4px 0 var(--blue);
+    transition:transform .15s,box-shadow .15s;
+    margin-bottom:18px;
+  }
+  .google-sketch-btn:hover{
+    transform:translate(-2px,-2px) rotate(-.5deg);
+    box-shadow:5px 6px 0 var(--blue);
+  }
+  .google-sketch-btn:active{
+    transform:translate(2px,3px);
+    box-shadow:1px 1px 0 var(--blue);
+  }
+
+  .divider-sketch{
+    display:flex;align-items:center;gap:12px;
+    margin:12px 0 16px;color:var(--ink-soft);font-size:1.05rem;
+  }
+  .divider-sketch::before, .divider-sketch::after{
+    content:'';flex:1;height:2px;
+    background:repeating-linear-gradient(90deg, var(--ink-soft), var(--ink-soft) 4px, transparent 4px, transparent 8px);
+    opacity:.5;
+  }
+
+  .field{position:relative;margin-bottom:18px}
+  .field label{display:block;font-size:1.05rem;color:var(--ink-soft);margin-bottom:2px;transition:color .2s}
+  .field:focus-within label{color:var(--coral)}
+  .field input[type=text],.field input[type=password],.field input[type=email]{
+    width:100%;background:transparent;border:none;outline:none;
+    font-family:'Patrick Hand';font-size:1.3rem;color:var(--ink);
+    padding:6px 44px 4px 0;
+  }
+  .field input::placeholder{color:#b5b0bf}
+  .underline{display:block;width:100%;height:10px;overflow:visible}
+  .underline path{fill:none;stroke-linecap:round;stroke-width:2.5}
+  .underline .base{stroke:var(--ink);opacity:.35;stroke-dasharray:1;stroke-dashoffset:0}
+  .underline .live{stroke:var(--coral);stroke-width:3.5;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .6s ease}
+  .field:focus-within .underline .live{stroke-dashoffset:0}
+  .toggle{
+    position:absolute;right:0;top:22px;background:none;border:none;cursor:pointer;
+    font-family:'Caveat';font-size:1.25rem;color:var(--blue);padding:2px 4px;
+    transition:transform .2s;
+  }
+  .toggle:hover{transform:rotate(-6deg) scale(1.1)}
+
+  .row{display:flex;justify-content:space-between;align-items:center;margin:4px 0 20px;font-size:1.08rem;gap:10px;flex-wrap:wrap}
+  .check{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .check input{position:absolute;opacity:0}
+  .check .box{width:24px;height:24px;flex:none}
+  .check .box rect{fill:#fff;stroke:var(--ink);stroke-width:2.2;rx:5}
+  .check .box path{fill:none;stroke:var(--coral);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .35s ease}
+  .check input:checked + .box path{stroke-dashoffset:0}
+  .check input:focus-visible + .box rect{stroke:var(--blue);stroke-width:3}
+  a{color:var(--blue);text-decoration:none;background:linear-gradient(var(--blue),var(--blue)) 0 100%/0 2px no-repeat;transition:background-size .3s;cursor:pointer}
+  a:hover{background-size:100% 2px}
+
+  .btn{
+    width:100%;position:relative;
+    font-family:'Caveat';font-weight:700;font-size:1.7rem;color:#fff;
+    background:var(--ink);border:none;cursor:pointer;
+    padding:10px 20px 12px;
+    border-radius:255px 18px 225px 18px/18px 225px 18px 255px;
+    box-shadow:4px 5px 0 var(--coral);
+    transition:transform .15s,box-shadow .15s;
+    display:flex;align-items:center;justify-content:center;gap:10px;overflow:hidden;
+  }
+  .btn:hover{transform:translate(-2px,-2px) rotate(-.6deg);box-shadow:7px 8px 0 var(--coral)}
+  .btn:active{transform:translate(3px,4px);box-shadow:1px 1px 0 var(--coral)}
+  .btn:focus-visible{outline:3px dashed var(--blue);outline-offset:4px}
+  .pencil-ico{width:26px;height:26px;transition:transform .4s}
+  .btn:hover .pencil-ico{animation:scribble .5s ease-in-out infinite alternate}
+  @keyframes scribble{from{transform:rotate(-14deg) translateX(-3px)}to{transform:rotate(8deg) translateX(4px)}}
+  .btn.loading .label{opacity:.0}
+  .btn .spinner{position:absolute;display:none;width:34px;height:34px}
+  .btn.loading .spinner{display:block}
+  .btn .spinner path{fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-dasharray:60;animation:spin 1s linear infinite;transform-origin:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .btn.done{background:#2f9e6a;box-shadow:4px 5px 0 var(--yellow)}
+
+  .msg{min-height:1.4em;margin-top:12px;text-align:center;font-size:1.15rem;color:var(--coral)}
+  .signup{text-align:center;margin-top:12px;color:var(--ink-soft);font-size:1.1rem}
+
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:5}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    .draw-in,.doodle path,.doodle circle,h1 svg path{stroke-dashoffset:0!important}
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- Back to canvas link -->
+<a href="/" class="back-link" title="Return to Canvas Studio">
+  <i class="fa-solid fa-paintbrush"></i>
+  <span>Back to Studio</span>
+</a>
+
+<!-- background doodles -->
+<div class="doodles" aria-hidden="true">
+  <svg class="doodle c1 d1" viewBox="0 0 100 100"><path pathLength="1" d="M50 8 L61 38 L93 39 L67 58 L77 90 L50 71 L23 90 L33 58 L7 39 L39 38 Z"/></svg>
+  <svg class="doodle c2 d2" viewBox="0 0 120 60"><path pathLength="1" d="M4 30 Q20 0 36 30 T68 30 T100 30 T116 30"/></svg>
+  <svg class="doodle c3 d3" viewBox="0 0 100 100"><path pathLength="1" d="M50 50 m0 0 a4 4 0 1 1 8 0 a12 12 0 1 1 -24 0 a20 20 0 1 1 40 0 a28 28 0 1 1 -56 0 a36 36 0 1 1 72 0"/></svg>
+  <svg class="doodle c1 d4" viewBox="0 0 100 100"><path pathLength="1" d="M10 80 Q30 10 60 40 T90 20"/><path pathLength="1" d="M72 14 L90 20 L80 36"/></svg>
+  <svg class="doodle c2 d5" viewBox="0 0 100 100"><circle pathLength="1" cx="50" cy="50" r="38"/></svg>
+  <svg class="doodle c3 d6" viewBox="0 0 100 100"><path pathLength="1" d="M20 20 L80 20 L80 80 L20 80 Z M20 20 L80 80 M80 20 L20 80"/></svg>
+</div>
+
+<main class="stage">
+
+  <!-- ===== Character scene ===== -->
+  <section class="scene" id="scene" aria-hidden="true">
+    <svg viewBox="0 0 300 300" id="char">
+      <defs>
+        <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="2" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/>
+        </filter>
+      </defs>
+      <g filter="url(#wobble)">
+        <!-- shadow scribble -->
+        <path class="ink-thin draw-in d3s" pathLength="1" d="M80 272 Q150 286 220 272" />
+
+        <g id="tilt" class="tilt"><g class="head">
+          <!-- head -->
+          <path d="M150 68 C215 66 244 118 240 168 C236 225 196 252 150 252 C104 252 62 225 60 168 C58 118 88 70 150 68 Z" fill="#fffdf6"/>
+          <path class="ink draw-in" pathLength="1" d="M150 68 C215 66 244 118 240 168 C236 225 196 252 150 252 C104 252 62 225 60 168 C58 118 88 70 150 68 Z"/>
+          <path class="ink-thin draw-in d2s" pathLength="1" style="opacity:.4" d="M152 72 C210 72 238 120 236 166 C232 222 194 247 150 248"/>
+
+          <!-- scribble hair -->
+          <path class="ink draw-in d2s" pathLength="1" d="M92 84 Q82 52 104 46 Q106 30 126 40 Q140 20 156 40 Q178 24 188 46 Q214 46 208 82"/>
+          <path class="ink-thin draw-in d3s" pathLength="1" d="M110 70 Q120 52 134 66 M150 62 Q160 44 172 64 M184 70 Q192 56 200 72"/>
+
+          <!-- pencil behind ear -->
+          <g transform="rotate(28 236 120)">
+            <rect x="228" y="70" width="12" height="62" fill="var(--yellow)" stroke="var(--ink)" stroke-width="2.4"/>
+            <path d="M228 70 L234 54 L240 70 Z" fill="#f2d4a8" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M231 61 L234 54 L237 61 Z" fill="var(--ink)"/>
+            <rect x="228" y="126" width="12" height="8" fill="var(--coral)" stroke="var(--ink)" stroke-width="2.4"/>
+          </g>
+
+          <!-- face = a tiny village scene inside a round window -->
+          <defs><clipPath id="vclip"><circle cx="150" cy="168" r="70"/></clipPath></defs>
+          <g clip-path="url(#vclip)">
+            <rect x="70" y="90" width="160" height="160" fill="#e3f3ff"/>
+            <g class="sun">
+              <g class="sun-rays"><path class="ink-thin" d="M188 100 v-7 M188 140 v7 M168 120 h-7 M208 120 h7 M174 106 l-5 -5 M202 134 l5 5 M174 134 l-5 5 M202 106 l5 -5"/></g>
+              <circle cx="188" cy="120" r="12" fill="var(--yellow)" stroke="var(--ink)" stroke-width="2.4"/>
+            </g>
+            <g class="cloud">
+              <path d="M104 128 q-11 0 -11 -9 q0 -8 10 -8 q3 -10 14 -8 q9 -3 15 5 q9 0 9 9 q0 11 -11 11 z" fill="#fff" stroke="var(--ink)" stroke-width="2.3" stroke-linejoin="round"/>
+              <g class="rain"><path d="M104 136 v9 M118 136 v11 M132 136 v9"/></g>
+            </g>
+            <g class="birds"><path class="ink-thin" d="M92 104 q4 -5 8 0 q4 -5 8 0 M120 94 q3 -4 6 0 q3 -4 6 0"/></g>
+            <path d="M68 190 Q100 158 136 184 T232 176 V250 H68 Z" fill="#a8dcae" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/>
+            <g class="rainbow">
+              <path class="rb r1" pathLength="1" d="M104 196 A46 46 0 0 1 196 196"/>
+              <path class="rb r2" pathLength="1" d="M111 196 A39 39 0 0 1 189 196"/>
+              <path class="rb r3" pathLength="1" d="M118 196 A32 32 0 0 1 182 196"/>
+              <path class="rb r4" pathLength="1" d="M125 196 A25 25 0 0 1 175 196"/>
+            </g>
+            <path d="M68 204 Q150 188 232 206 V250 H68 Z" fill="#6cc57c" stroke="var(--ink)" stroke-width="2.2"/>
+            <path class="ink-thin" style="opacity:.45" d="M80 214 q10 -3 20 0 M170 212 q10 -3 20 0 M200 222 q8 -3 16 0"/>
+            <g class="hut">
+              <rect x="98" y="184" width="32" height="20" fill="#f2d4a8" stroke="var(--ink)" stroke-width="2.4"/>
+              <rect x="108" y="190" width="9" height="14" fill="#a8693a" stroke="var(--ink)" stroke-width="1.8"/>
+              <path d="M91 186 L114 162 L137 186 Z" fill="#d9a441" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+              <path class="ink-thin" d="M101 183 L114 169 M110 184 L121 172 M120 185 L128 176"/>
+              <path class="ink-thin smoke" d="M124 162 q6 -8 0 -14 q-5 -6 2 -12"/>
+            </g>
+            <g class="palm">
+              <path d="M180 206 Q177 188 182 168" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+              <g class="leaves"><path d="M182 168 q-14 -6 -24 6 M182 168 q-6 -16 -20 -14 M182 168 q10 -14 26 -8 M182 168 q14 -2 22 12" fill="none" stroke="#2f9e6a" stroke-width="4.5" stroke-linecap="round"/></g>
+            </g>
+            <path d="M68 224 Q110 212 150 224 T232 220 V250 H68 Z" fill="#7cc4f0" stroke="var(--ink)" stroke-width="2.2"/>
+            <path class="ink-thin" style="opacity:.6" d="M84 232 q8 -3 16 0 M180 234 q8 -3 16 0"/>
+            <g class="boat">
+              <path d="M138 226 q14 9 30 0 z" fill="#a8693a" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/>
+              <path d="M153 226 V208 L166 223 Z" fill="#fff" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+            </g>
+          </g>
+          <circle cx="150" cy="168" r="70" fill="none" stroke="var(--ink)" stroke-width="3.2"/>
+        </g>
+        </g>
+
+        <!-- mood doodles -->
+        <g class="fx happy-fx"><path class="ink" d="M44 78 v22 M33 89 h22"/><path class="ink" d="M262 96 v16 M254 104 h16"/><path class="ink" d="M250 40 l4 10 10 2 -8 7 2 10 -8 -5 -8 5 2 -10 -8 -7 10 -2z"/></g>
+        <g class="fx sad-fx"><path class="ink" d="M240 70 q0 -16 16 -16 q16 0 16 13 q0 9 -11 13 v7"/><path class="ink" d="M261 98 v2"/></g>
+
+        <!-- hands -->
+        <g class="hand left">
+          <ellipse cx="108" cy="168" rx="42" ry="70" fill="var(--skin)" stroke="var(--ink)" stroke-width="3"/>
+          <path class="ink-thin" d="M84 108 L84 134 M98 102 L98 134 M112 100 L112 134 M126 104 L126 134"/>
+          <ellipse cx="108" cy="190" rx="30" ry="40" fill="var(--skin)" stroke="var(--ink)" stroke-width="3" style="display:none"/>
+        </g>
+        <g class="hand right">
+          <ellipse cx="192" cy="168" rx="42" ry="70" fill="var(--skin)" stroke="var(--ink)" stroke-width="3"/>
+          <path class="ink-thin" d="M174 104 L174 134 M188 100 L188 134 M202 102 L202 134 M216 108 L216 134"/>
+        </g>
+      </g>
+    </svg>
+    <div class="tagline">Welcome back, artist!<small>your sketches missed you ✏️</small></div>
+  </section>
+
+  <!-- ===== Login card ===== -->
+  <section class="card-wrap">
+    <form class="card" id="card" novalidate autocomplete="on">
+      <svg class="border" id="border" aria-hidden="true"><path id="b1"/><path id="b2" class="ghost"/></svg>
+      <span class="tape" aria-hidden="true"></span>
+
+      <h1 id="formTitle">Login
+        <svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 Q25 0 50 8 T98 6"/></svg>
+      </h1>
+      <p class="sub" id="formSub">Get back to your canvas and keep drawing.</p>
+
+      <!-- Google Sign In Button -->
+      <button type="button" class="google-sketch-btn" id="googleBtn">
+        <svg viewBox="0 0 24 24" width="22" height="22">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Continue with Google (Gmail)</span>
+      </button>
+
+      <div class="divider-sketch">
+        <span>or use email</span>
+      </div>
+
+      <div class="field" id="nameFieldGroup" style="display:none;">
+        <label for="fullName">Artist Name</label>
+        <input type="text" id="fullName" name="name" placeholder="Your creative name">
+        <svg class="underline" viewBox="0 0 300 10" preserveAspectRatio="none" aria-hidden="true">
+          <path class="base" pathLength="1" d="M2 6 Q40 1 80 6 T160 5 T240 6 T298 4"/>
+          <path class="live" pathLength="1" d="M2 6 Q40 1 80 6 T160 5 T240 6 T298 4"/>
+        </svg>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@gmail.com" autocomplete="username" required>
+        <svg class="underline" viewBox="0 0 300 10" preserveAspectRatio="none" aria-hidden="true">
+          <path class="base" pathLength="1" d="M2 6 Q40 1 80 6 T160 5 T240 6 T298 4"/>
+          <path class="live" pathLength="1" d="M2 6 Q40 1 80 6 T160 5 T240 6 T298 4"/>
+        </svg>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+        <button type="button" class="toggle" id="toggle" aria-label="Show password" aria-pressed="false">show</button>
+        <svg class="underline" viewBox="0 0 300 10" preserveAspectRatio="none" aria-hidden="true">
+          <path class="base" pathLength="1" d="M2 5 Q50 9 100 5 T200 6 T298 5"/>
+          <path class="live" pathLength="1" d="M2 5 Q50 9 100 5 T200 6 T298 5"/>
+        </svg>
+      </div>
+
+      <div class="row" id="optionsRow">
+        <label class="check">
+          <input type="checkbox" id="remember" checked>
+          <svg class="box" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20"/><path pathLength="1" d="M6 12.5 L10.5 17 L19 6"/></svg>
+          Remember me
+        </label>
+        <a href="#" id="magicLinkTrigger">Send Magic Link</a>
+      </div>
+
+      <button class="btn" id="submit" type="submit">
+        <svg class="spinner" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 A16 16 0 1 1 4 20"/></svg>
+        <svg class="pencil-ico" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21 L4 16 L16 4 L20 8 L8 20 Z"/><path d="M14 6 L18 10"/></svg>
+        <span class="label" id="btnLabel">Sketch In</span>
+      </button>
+
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+      <p class="signup" id="signupToggle">New here? <a href="#" id="toggleModeBtn">Create an account</a></p>
+    </form>
+  </section>
+</main>
+
+<canvas class="confetti" id="confetti"></canvas>
+
+<script type="module">
+import { supabaseService } from './js/core/supabaseClient.js';
+
+(() => {
+  const $ = s => document.querySelector(s);
+  const scene = $('#scene'), card = $('#card');
+  const email = $('#email'), pass = $('#password'), toggle = $('#toggle');
+  const fullName = $('#fullName'), nameGroup = $('#nameFieldGroup');
+  const tilt = $('#tilt'), formTitle = $('#formTitle'), formSub = $('#formSub');
+  const btn = $('#submit'), msg = $('#msg'), label = $('#btnLabel');
+  const googleBtn = $('#googleBtn'), toggleModeBtn = $('#toggleModeBtn');
+  const signupToggle = $('#signupToggle'), magicLinkTrigger = $('#magicLinkTrigger');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let isSignUpMode = false;
+
+  // Check if already authenticated
+  supabaseService.onAuthStateChange(user => {
+    if (user && !sessionStorage.getItem('logging_out')) {
+      // User already logged in, redirect to main studio
+      window.location.href = '/';
+    }
+  });
+
+  /* ---------- eyes follow the mouse ---------- */
+  const svg = $('#char');
+  let lookX = 0, lookY = 0;
+  function setLook(x, y){
+    lookX = x; lookY = y;
+    tilt.style.transform = `rotate(${x*0.9}deg) translateY(${y*0.6}px)`;
+  }
+  window.addEventListener('mousemove', e => {
+    if (document.activeElement === email) return;
+    const r = svg.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height*0.5;
+    const dx = e.clientX - cx, dy = e.clientY - cy;
+    const d = Math.hypot(dx, dy) || 1;
+    const m = Math.min(9, d/30);
+    setLook(dx/d*m, dy/d*m);
+  });
+
+  // while typing in email: look at the text
+  email.addEventListener('input', () => {
+    const t = Math.min(email.value.length, 28) / 28;
+    setLook(-8 + t*16, 6);
+  });
+  email.addEventListener('focus', () => { setLook(-6, 6); });
+
+  /* ---------- password: hands cover eyes ---------- */
+  function updateCover(){
+    const focused = document.activeElement === pass;
+    const shown = pass.type === 'text';
+    scene.classList.toggle('covering', focused && !shown);
+    scene.classList.toggle('peek', false);
+    if (focused && shown) setLook(0, 7);
+  }
+  pass.addEventListener('focus', updateCover);
+  pass.addEventListener('blur', () => { scene.classList.remove('covering'); });
+  toggle.addEventListener('click', () => {
+    const show = pass.type === 'password';
+    pass.type = show ? 'text' : 'password';
+    toggle.textContent = show ? 'hide' : 'show';
+    toggle.setAttribute('aria-pressed', show);
+    toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    pass.focus();
+    updateCover();
+  });
+
+  /* ---------- mood ---------- */
+  function mood(name){
+    scene.classList.toggle('happy', name==='happy');
+    scene.classList.toggle('sad', name==='sad');
+    if (name==='sad') setLook(0, 8);
+  }
+
+  /* ---------- "boiling" pencil lines ---------- */
+  if (!reduce){
+    const turb = $('#turb'); let s = 2;
+    setInterval(() => { s = (s % 9) + 1; turb.setAttribute('seed', s); }, 160);
+  }
+
+  /* ---------- hand-drawn card border ---------- */
+  const b1 = $('#b1'), b2 = $('#b2'), bsvg = $('#border');
+  function wob(w,h,j){
+    const r = n => (Math.random()-.5)*j*n;
+    return `M${8+r(1)} ${7+r(1)} Q${w*.25} ${1+r(2)} ${w*.5} ${5+r(1)} T${w-6+r(1)} ${7+r(1)}
+            Q${w-2} ${h*.5} ${w-7+r(1)} ${h-6+r(1)} Q${w*.6} ${h-1+r(2)} ${w*.35} ${h-6+r(1)} T${7+r(1)} ${h-5+r(1)}
+            Q${3+r(1)} ${h*.5} ${8+r(1)} ${7+r(1)}`;
+  }
+  function drawBorder(animate){
+    const w = card.offsetWidth, h = card.offsetHeight;
+    bsvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    b1.setAttribute('d', wob(w,h,3));
+    b2.setAttribute('d', wob(w,h,6));
+    [b1,b2].forEach((p,i) => {
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      if (animate && !reduce){
+        p.style.transition = 'none';
+        p.style.strokeDashoffset = len;
+        p.getBoundingClientRect();
+        p.style.transition = `stroke-dashoffset ${1.8+i*.4}s ease ${.5+i*.2}s`;
+        requestAnimationFrame(() => p.style.strokeDashoffset = 0);
+      } else p.style.strokeDashoffset = 0;
+    });
+  }
+  window.addEventListener('load', () => drawBorder(true));
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => drawBorder(false), 150); });
+
+  /* ---------- confetti of little doodles ---------- */
+  const cv = $('#confetti'), cx = cv.getContext('2d');
+  function burst(){
+    if (reduce) return;
+    cv.width = innerWidth; cv.height = innerHeight;
+    const colors = ['#ff6b4a','#f7c948','#3b82f6','#2f9e6a','#2b2a33'];
+    const ps = Array.from({length:75}, () => ({
+      x: innerWidth/2, y: innerHeight/2,
+      vx:(Math.random()-.5)*15, vy:-Math.random()*14-4,
+      r:Math.random()*Math.PI, vr:(Math.random()-.5)*.4,
+      c:colors[Math.random()*colors.length|0], t:Math.random()*3|0, life:0
+    }));
+    (function tick(){
+      cx.clearRect(0,0,cv.width,cv.height);
+      let alive = false;
+      ps.forEach(p => {
+        p.life++; p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        if (p.y < cv.height+20 && p.life < 140) alive = true; else return;
+        cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r);
+        cx.strokeStyle = p.c; cx.lineWidth = 3; cx.lineCap = 'round'; cx.globalAlpha = 1 - p.life/140;
+        cx.beginPath();
+        if (p.t===0){ cx.moveTo(-8,0); cx.quadraticCurveTo(-4,-8,0,0); cx.quadraticCurveTo(4,8,8,0); }
+        else if (p.t===1){ cx.arc(0,0,6,0,Math.PI*1.7); }
+        else { cx.moveTo(-7,0); cx.lineTo(7,0); cx.moveTo(0,-7); cx.lineTo(0,7); }
+        cx.stroke(); cx.restore();
+      });
+      if (alive) requestAnimationFrame(tick); else cx.clearRect(0,0,cv.width,cv.height);
+    })();
+  }
+
+  /* ---------- toggle between Login and Sign Up ---------- */
+  toggleModeBtn.addEventListener('click', e => {
+    e.preventDefault();
+    isSignUpMode = !isSignUpMode;
+    msg.textContent = '';
+    mood('neutral');
+
+    if (isSignUpMode) {
+      formTitle.innerHTML = `Sign Up <svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 Q25 0 50 8 T98 6"/></svg>`;
+      formSub.textContent = 'Create your private studio account.';
+      nameGroup.style.display = 'block';
+      label.textContent = 'Create Account';
+      signupToggle.innerHTML = `Already have an account? <a href="#" id="toggleBackBtn">Sign In</a>`;
+      $('#toggleBackBtn').addEventListener('click', () => toggleModeBtn.click());
+    } else {
+      formTitle.innerHTML = `Login <svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 Q25 0 50 8 T98 6"/></svg>`;
+      formSub.textContent = 'Get back to your canvas and keep drawing.';
+      nameGroup.style.display = 'none';
+      label.textContent = 'Sketch In';
+      signupToggle.innerHTML = `New here? <a href="#" id="toggleForwardBtn">Create an account</a>`;
+      $('#toggleForwardBtn').addEventListener('click', () => toggleModeBtn.click());
+    }
+    setTimeout(() => drawBorder(false), 50);
+  });
+
+  /* ---------- Google / Gmail One-Click Sign In ---------- */
+  googleBtn.addEventListener('click', async () => {
+    msg.textContent = 'Connecting with Google...';
+    mood('neutral');
+    try {
+      await supabaseService.signInWithGoogle();
+    } catch (err) {
+      msg.textContent = err.message || 'Google sign-in error';
+      mood('sad');
+      card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+    }
+  });
+
+  /* ---------- Magic Link Sign In ---------- */
+  magicLinkTrigger.addEventListener('click', async e => {
+    e.preventDefault();
+    const emailVal = email.value.trim();
+    if (!emailVal) {
+      msg.textContent = 'Please enter your email above to receive a Magic Link.';
+      mood('sad');
+      email.focus();
+      return;
+    }
+    msg.textContent = 'Sending Magic Link to ' + emailVal + '...';
+    try {
+      await supabaseService.signInWithOtp(emailVal);
+      msg.textContent = 'Magic link sent! Check your Gmail inbox.';
+      mood('happy'); burst();
+    } catch (err) {
+      msg.textContent = err.message || 'Failed to send magic link.';
+      mood('sad');
+    }
+  });
+
+  /* ---------- Form Submit (Email & Password) ---------- */
+  card.addEventListener('submit', async e => {
+    e.preventDefault();
+    msg.textContent = '';
+    const emailVal = email.value.trim();
+    const passVal = pass.value;
+
+    if (!emailVal || !passVal){
+      msg.textContent = 'Oops! Please fill in all fields.';
+      mood('sad');
+      card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+      (!emailVal ? email : pass).focus();
+      return;
+    }
+
+    btn.classList.add('loading'); btn.disabled = true;
+
+    try{
+      if (isSignUpMode) {
+        const nameVal = fullName.value.trim();
+        await supabaseService.signUp(emailVal, passVal, nameVal);
+        btn.classList.remove('loading'); btn.classList.add('done');
+        label.textContent = 'Account Created!';
+        msg.textContent = 'Welcome! Verification sent if required.';
+        mood('happy'); setLook(0,0); burst();
+        setTimeout(() => { window.location.href = '/'; }, 1200);
+      } else {
+        await supabaseService.signInWithPassword(emailVal, passVal);
+        btn.classList.remove('loading'); btn.classList.add('done');
+        label.textContent = 'Welcome back!';
+        mood('happy'); setLook(0,0); burst();
+        setTimeout(() => { window.location.href = '/'; }, 1000);
+      }
+    }catch(err){
+      btn.classList.remove('loading'); btn.disabled = false;
+      msg.textContent = err.message || 'Incorrect email or password.';
+      mood('sad');
+      card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+    }
+  });
+
+  [email, pass, fullName].forEach(i => i.addEventListener('input', () => { msg.textContent=''; mood('neutral'); }));
+})();
+</script>
+</body>
+</html>
