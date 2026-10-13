@@ -435,6 +435,9 @@ export class BrushLibraryUI {
   }
 
   selectBrush(brushId) {
+    if (typeof brushId === 'object' && brushId?.id) {
+      brushId = brushId.id;
+    }
     const brush = brushEngine.getBrushById(brushId);
     if (!brush) return;
 

@@ -351,7 +351,7 @@ export class CanvasRenderer {
 
   renderElement(ctx, el) {
     ctx.save();
-    ctx.globalAlpha = el.opacity ?? 1.0;
+    ctx.globalAlpha = el.tool === 'eraser' ? 1.0 : (el.opacity ?? 1.0);
 
     switch (el.type) {
       case 'stroke':
@@ -416,10 +416,15 @@ export class CanvasRenderer {
     ctx.lineWidth = baseSize;
 
     if (el.tool === 'eraser') {
+      ctx.globalAlpha = 1.0;
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
       ctx.fillStyle = 'rgba(0,0,0,1)';
-      this.drawPath(ctx, el.points, baseSize);
+      if (el.usePressure && el.points.length >= 2) {
+        brushEngine.renderPressureRibbon(ctx, el.points, 'rgba(0,0,0,1)', baseSize);
+      } else {
+        this.drawPath(ctx, el.points, baseSize);
+      }
       ctx.restore();
       return;
     } else if (el.tool === 'highlighter') {

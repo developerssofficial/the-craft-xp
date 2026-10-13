@@ -159,10 +159,11 @@ export class BrushTool extends BaseTool {
 
     if (this.points.length >= 2) {
       const elementsToCommit = [];
-      const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
+      const isEraser = this.mode === 'eraser';
+      const color = isEraser ? 'rgba(0,0,0,1)' : (this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color);
       const usePressure = ctx.toolState.pressureDynamics !== false;
-      const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
-      const settings = this.activeBrushSettings ? { ...this.activeBrushSettings } : null;
+      const brushPreset = (!isEraser && this.mode === 'brush') ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+      const settings = isEraser ? null : (this.activeBrushSettings ? { ...this.activeBrushSettings } : null);
 
       const mainStroke = {
         type: 'stroke',
@@ -171,7 +172,7 @@ export class BrushTool extends BaseTool {
         brushSettings: settings,
         color: color,
         size: ctx.toolState.size,
-        opacity: ctx.toolState.opacity,
+        opacity: isEraser ? 1.0 : ctx.toolState.opacity,
         usePressure,
         points: [...this.points]
       };
@@ -185,7 +186,7 @@ export class BrushTool extends BaseTool {
           brushSettings: settings,
           color: color,
           size: ctx.toolState.size,
-          opacity: ctx.toolState.opacity,
+          opacity: isEraser ? 1.0 : ctx.toolState.opacity,
           usePressure,
           points: [...this.symPoints]
         };
@@ -211,10 +212,11 @@ export class BrushTool extends BaseTool {
 
     previewCtx.clearRect(0, 0, ctx.doc.width, ctx.doc.height);
 
-    const color = this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color;
+    const isEraser = this.mode === 'eraser';
+    const color = isEraser ? 'rgba(0,0,0,1)' : (this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color);
     const usePressure = ctx.toolState.pressureDynamics !== false;
-    const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
-    const settings = this.activeBrushSettings ? { ...this.activeBrushSettings } : null;
+    const brushPreset = (!isEraser && this.mode === 'brush') ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+    const settings = isEraser ? null : (this.activeBrushSettings ? { ...this.activeBrushSettings } : null);
 
     const tempStroke = {
       type: 'stroke',
@@ -223,7 +225,7 @@ export class BrushTool extends BaseTool {
       brushSettings: settings,
       color: color,
       size: ctx.toolState.size,
-      opacity: ctx.toolState.opacity,
+      opacity: isEraser ? 1.0 : ctx.toolState.opacity,
       usePressure,
       points: this.points
     };
@@ -236,7 +238,7 @@ export class BrushTool extends BaseTool {
         brushSettings: settings,
         color: color,
         size: ctx.toolState.size,
-        opacity: ctx.toolState.opacity,
+        opacity: 1.0,
         usePressure,
         points: this.symPoints
       } : null;
