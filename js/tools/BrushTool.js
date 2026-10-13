@@ -43,7 +43,14 @@ export class BrushTool extends BaseTool {
     this.stabilizedX = ctx.x;
     this.stabilizedY = ctx.y;
 
-    const brushPreset = this.mode === 'brush' ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+    let brushPreset = null;
+    if (this.mode === 'brush') {
+      brushPreset = ctx.toolState.activeBrushPreset || 'basic_medium_round';
+    } else if (this.mode === 'pencil') {
+      brushPreset = (ctx.toolState.activeBrushPreset && ctx.toolState.activeBrushPreset.startsWith('sketching_'))
+        ? ctx.toolState.activeBrushPreset
+        : 'sketching_pencil_hb';
+    }
     this.activeBrushSettings = brushPreset ? brushEngine.getBrushSettings(brushPreset) : null;
 
     let initPressure = ctx.pressure !== undefined && ctx.pressure > 0 ? ctx.pressure : 0.5;
@@ -162,7 +169,16 @@ export class BrushTool extends BaseTool {
       const isEraser = this.mode === 'eraser';
       const color = isEraser ? 'rgba(0,0,0,1)' : (this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color);
       const usePressure = ctx.toolState.pressureDynamics !== false;
-      const brushPreset = (!isEraser && this.mode === 'brush') ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+      let brushPreset = null;
+      if (!isEraser) {
+        if (this.mode === 'brush') {
+          brushPreset = ctx.toolState.activeBrushPreset || 'basic_medium_round';
+        } else if (this.mode === 'pencil') {
+          brushPreset = (ctx.toolState.activeBrushPreset && ctx.toolState.activeBrushPreset.startsWith('sketching_'))
+            ? ctx.toolState.activeBrushPreset
+            : 'sketching_pencil_hb';
+        }
+      }
       const settings = isEraser ? null : (this.activeBrushSettings ? { ...this.activeBrushSettings } : null);
 
       const mainStroke = {
@@ -215,7 +231,16 @@ export class BrushTool extends BaseTool {
     const isEraser = this.mode === 'eraser';
     const color = isEraser ? 'rgba(0,0,0,1)' : (this.mode === 'rainbow' ? `hsl(${this.rainbowHue}, 100%, 55%)` : ctx.toolState.color);
     const usePressure = ctx.toolState.pressureDynamics !== false;
-    const brushPreset = (!isEraser && this.mode === 'brush') ? (ctx.toolState.activeBrushPreset || 'basic_medium_round') : null;
+    let brushPreset = null;
+    if (!isEraser) {
+      if (this.mode === 'brush') {
+        brushPreset = ctx.toolState.activeBrushPreset || 'basic_medium_round';
+      } else if (this.mode === 'pencil') {
+        brushPreset = (ctx.toolState.activeBrushPreset && ctx.toolState.activeBrushPreset.startsWith('sketching_'))
+          ? ctx.toolState.activeBrushPreset
+          : 'sketching_pencil_hb';
+      }
+    }
     const settings = isEraser ? null : (this.activeBrushSettings ? { ...this.activeBrushSettings } : null);
 
     const tempStroke = {

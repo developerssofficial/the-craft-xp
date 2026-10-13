@@ -412,7 +412,7 @@ export class CanvasRenderer {
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    const baseSize = el.tool === 'pencil' ? 1.5 : (el.size || 8);
+    const baseSize = el.size || (el.tool === 'pencil' ? 4 : 8);
     ctx.lineWidth = baseSize;
 
     if (el.tool === 'eraser') {
@@ -447,7 +447,7 @@ export class CanvasRenderer {
       this.drawPath(ctx, el.points, baseSize);
       ctx.restore();
       return;
-    } else if (el.brushPreset || el.tool === 'brush') {
+    } else if (el.brushPreset || el.tool === 'brush' || el.tool === 'pencil') {
       ctx.restore();
       brushEngine.renderStroke(ctx, el);
       return;

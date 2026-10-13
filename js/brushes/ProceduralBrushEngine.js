@@ -1,3 +1,6 @@
+import { brushAssetManager } from './BrushAssetManager.js';
+import { BRUSH_CATALOG } from './BrushCatalogData.js';
+export { BRUSH_CATALOG };
 /**
  * The Craft — Procedural Brush Engine
  * High-performance, 60-120 FPS procedural digital painting engine.
@@ -61,201 +64,6 @@ export const BRUSH_CATEGORIES = [
   { id: 'watercolor', label: 'Watercolor', icon: 'fa-droplet', count: 5 }
 ];
 
-export const BRUSH_CATALOG = {
-  airbrush: [
-    { id: 'airbrush_grainy', name: 'Airbrush Grainy', desc: 'Granular spray with stochastic noise dispersion', type: 'airbrush', grain: 0.7, soft: 0.5 },
-    { id: 'airbrush_grainy_soft', name: 'Airbrush Grainy Soft', desc: 'Silky smooth noise gradient with feathered falloff', type: 'airbrush', grain: 0.45, soft: 0.8 },
-    { id: 'airbrush_hard', name: 'Airbrush Hard', desc: 'Crisp radial boundary with subtle pressure density', type: 'airbrush', grain: 0.05, soft: 0.2 },
-    { id: 'airbrush_medium', name: 'Airbrush Medium', desc: 'Balanced commercial airbrush with natural flow', type: 'airbrush', grain: 0.1, soft: 0.5 },
-    { id: 'airbrush_soft', name: 'Airbrush Soft', desc: 'Ultra-smooth Gaussian gradient for seamless blending', type: 'airbrush', grain: 0, soft: 0.85 },
-    { id: 'airbrush_ultra_soft', name: 'Airbrush Ultra Soft', desc: 'Expansive ethereal fog with ultra-low falloff', type: 'airbrush', grain: 0, soft: 0.98 },
-    { id: 'airbrush_fuzzy_soft', name: 'Airbrush Fuzzy Soft', desc: 'Soft perimeter jitter with randomized edge dispersal', type: 'airbrush', grain: 0.35, soft: 0.7, fuzzy: true },
-    { id: 'airbrush_fuzzy', name: 'Airbrush Fuzzy', desc: 'Hazy dispersion with atmospheric particle scatter', type: 'airbrush', grain: 0.6, soft: 0.4, fuzzy: true }
-  ],
-  basic: [
-    { id: 'basic_hard_round', name: 'Hard Round', desc: 'Solid opaque circular tip with 100% sharp rim', type: 'round', hardness: 1.0 },
-    { id: 'basic_medium_round', name: 'Medium Round', desc: 'Standard studio round with gentle anti-aliased edge', type: 'round', hardness: 0.75 },
-    { id: 'basic_soft_round', name: 'Soft Round', desc: 'Classic soft round brush with linear opacity fade', type: 'round', hardness: 0.4 },
-    { id: 'basic_smooth_edge_round', name: 'Smooth Edge Round', desc: 'Precision curved edge with pressure responsive flow', type: 'round', hardness: 0.85 },
-    { id: 'basic_gell_pen', name: 'Gell Pen', desc: 'Glossy high-pigment gel ink line with slight pooling', type: 'gel', hardness: 0.95 },
-    { id: 'basic_worm', name: 'Worm', desc: 'Segmented organic tubular stroke', type: 'segmented', segmentGap: 0.3 },
-    { id: 'basic_worm_shell', name: 'Worm Shell', desc: 'Hollow ribbed continuous contour tube', type: 'tube', outlineOnly: true },
-    { id: 'basic_ellipse', name: 'Ellipse', desc: '45-degree angled calligraphic oval tip', type: 'ellipse', angle: 45, ratio: 0.4 },
-    { id: 'basic_ellipse_flat', name: 'Ellipse Flat', desc: 'Horizontal compressed ellipse for broad blocking', type: 'ellipse', angle: 0, ratio: 0.25 },
-    { id: 'basic_fragmented_ellipse_flat', name: 'Fragmented Ellipse Flat', desc: 'Chipped flat ellipse with broken trailing edges', type: 'ellipse_fragmented', angle: 0, ratio: 0.25 },
-    { id: 'basic_fragmented_round', name: 'Fragmented Round', desc: 'Distressed circular stamp with dry tooth', type: 'round_fragmented' },
-    { id: 'basic_square', name: 'Square', desc: 'Architectural hard square stamp', type: 'square', hardness: 1.0 },
-    { id: 'basic_soft_square', name: 'Soft Square', desc: 'Box stamp with smoothed bevel edges', type: 'square', hardness: 0.6 },
-    { id: 'basic_hard_flat', name: 'Hard Flat', desc: 'Broad flat chisel tip for blocking in silhouettes', type: 'flat', hardness: 1.0 },
-    { id: 'basic_triangle', name: 'Triangle', desc: 'Geometric triangular dynamic footprint', type: 'polygon', sides: 3 },
-    { id: 'basic_pentagon', name: 'Pentagon', desc: 'Five-point crystalline polygon tip', type: 'polygon', sides: 5 },
-    { id: 'basic_trapezoid', name: 'Trapezoid', desc: 'Angled wedge marker stamp', type: 'trapezoid' },
-    { id: 'basic_trapezoid_flat', name: 'Trapezoid Flat', desc: 'Low-profile angled blade for dynamic hatching', type: 'trapezoid_flat' },
-    { id: 'basic_barcode', name: 'Barcode', desc: 'Parallel vertical linear bands', type: 'barcode' },
-    { id: 'basic_round_stipple', name: 'Round Stipple', desc: 'Concentric dots forming pointillist texture', type: 'stipple', density: 'medium' },
-    { id: 'basic_loose_round_stipple', name: 'Loose Round Stipple', desc: 'Airy dispersed dot cloud', type: 'stipple', density: 'loose' },
-    { id: 'basic_scatter_stipple', name: 'Scatter Stipple', desc: 'Randomized granular spray clustering', type: 'scatter_stipple', density: 'medium' },
-    { id: 'basic_dense_scatter_stipple', name: 'Dense Scatter Stipple', desc: 'Rich compact stipple cluster', type: 'scatter_stipple', density: 'dense' },
-    { id: 'basic_clods', name: 'Clods', desc: 'Earthy textured clumps and organic spatters', type: 'clods', scale: 1.0 },
-    { id: 'basic_clods_2', name: 'Clods 2', desc: 'Heavy irregular sediment deposits', type: 'clods', scale: 1.8 }
-  ],
-  caligraphy: [
-    { id: 'caligraphy_classic', name: 'Caligraphy', desc: 'Traditional 45° broad-edge italic nib', type: 'caligraphy', angle: 45, ratio: 0.2 },
-    { id: 'caligraphy_directional', name: 'Caligraphy Directional', desc: 'Ribbon angle continuously follows pen tangent', type: 'caligraphy_dir', ratio: 0.25 },
-    { id: 'caligraphy_soft', name: 'Caligraphy Soft', desc: 'Flexible brush lettering with tapered pressure swell', type: 'caligraphy_soft', angle: 45 },
-    { id: 'caligraphy_horizontal', name: 'Caligraphy Horizontal', desc: 'Zero-degree flat horizontal oriental pen', type: 'caligraphy', angle: 0, ratio: 0.18 },
-    { id: 'caligraphy_horizontal_dir', name: 'Horizontal Directional', desc: 'Dynamic horizontal blade aligning to stroke velocity', type: 'caligraphy_dir', angleOffset: 0 },
-    { id: 'caligraphy_vertical', name: 'Caligraphy Vertical', desc: '90-degree vertical reed pen', type: 'caligraphy', angle: 90, ratio: 0.18 },
-    { id: 'caligraphy_vertical_dir', name: 'Vertical Directional', desc: 'Perpendicular oriented stroke blade', type: 'caligraphy_dir', angleOffset: 90 },
-    { id: 'caligraphy_hook', name: 'Hook', desc: 'Sharp terminal serif hook dynamics', type: 'hook' },
-    { id: 'caligraphy_soft_ribbon', name: 'Soft Ribbon', desc: 'Graceful undulating satin banner ribbon', type: 'ribbon', soft: true },
-    { id: 'caligraphy_thick_ribbon', name: 'Thick Ribbon', desc: 'Heavy dimensional tape ribbon', type: 'ribbon', thick: true },
-    { id: 'caligraphy_soft_twisted_ribbon', name: 'Soft Twisted Ribbon', desc: 'Helical twist ribbon with soft gradient turns', type: 'ribbon_twisted', soft: true },
-    { id: 'caligraphy_thick_twisted_ribbon', name: 'Thick Twisted Ribbon', desc: 'Geometric 3D twisting ribbon banner', type: 'ribbon_twisted', soft: false }
-  ],
-  charcoal: [
-    { id: 'charcoal_strong', name: 'Charcoal Strong', desc: 'Deep velvety vine charcoal with aggressive tooth', type: 'charcoal', roughness: 0.9, opacity: 0.95 },
-    { id: 'charcoal_medium', name: 'Charcoal Medium', desc: 'Compressed charcoal with rich paper grain pick-up', type: 'charcoal', roughness: 0.65, opacity: 0.8 },
-    { id: 'charcoal_light', name: 'Charcoal Light', desc: 'Soft willow charcoal for gentle atmospheric toning', type: 'charcoal', roughness: 0.45, opacity: 0.5 },
-    { id: 'charcoal_chalk', name: 'Chalk', desc: 'Dry calcium chalk with dusty trailing borders', type: 'chalk', roughness: 0.75, opacity: 0.85 }
-  ],
-  elements: [
-    { id: 'elements_smoke_1', name: 'Smoke 1', desc: 'Drifting wisps of translucent vapor', type: 'element_smoke', variant: 1 },
-    { id: 'elements_smoke_2', name: 'Smoke 2', desc: 'Dense billowing smoke puffs', type: 'element_smoke', variant: 2 },
-    { id: 'elements_smoke_3_rot', name: 'Smoke 3 Rotating', desc: 'Swirling vortex smoke clusters with angular momentum', type: 'element_smoke', variant: 3, rotate: true },
-    { id: 'elements_smoke_4_rot', name: 'Smoke 4 Rotating', desc: 'Turbulent convective smoke plume', type: 'element_smoke', variant: 4, rotate: true },
-    { id: 'elements_natural_smoke', name: 'Natural Flow Smoke', desc: 'Continuous smoke ribbon that curls organically', type: 'element_smoke_flow' },
-    { id: 'elements_flame_1', name: 'Flame 1', desc: 'Luminescent fiery tongue with core brightness', type: 'element_flame', variant: 1 },
-    { id: 'elements_flame_2', name: 'Flame 2', desc: 'Sparks and flickering candle-fire tongues', type: 'element_flame', variant: 2 },
-    { id: 'elements_natural_flame', name: 'Natural Flow Flame', desc: 'Dynamic bonfire flare path', type: 'element_flame_flow' },
-    { id: 'elements_light_cloud', name: 'Light Cloud', desc: 'Cirrus wisps and ethereal cumulus feathers', type: 'element_cloud', density: 0.3 },
-    { id: 'elements_cloudy_sky', name: 'Cloudy Sky', desc: 'Volumetric cloud banks for atmospheric landscapes', type: 'element_cloud', density: 0.65 },
-    { id: 'elements_dark_cloud', name: 'Dark Cloud', desc: 'Heavy storm clouds and dense overcast overcast', type: 'element_cloud', density: 0.95 }
-  ],
-  hair: [
-    { id: 'hair_fine', name: 'Fine Hair', desc: 'Individual silk-thin hair filaments', type: 'hair_multi', strands: 5, spread: 0.4, fine: true },
-    { id: 'hair_fine_dense', name: 'Fine Dense Hair', desc: 'Tight bouquet of ultra-thin hair strands', type: 'hair_multi', strands: 10, spread: 0.6, fine: true },
-    { id: 'hair_short', name: 'Short Hair', desc: 'Crisp cropped hair tips for buzz cuts & stubble', type: 'hair_short', strands: 6 },
-    { id: 'hair_short_dense', name: 'Short Dense Hair', desc: 'Thick plush short coat', type: 'hair_short', strands: 12 },
-    { id: 'hair_long_dense', name: 'Long Dense Hair', desc: 'Luxurious heavy tresses flowing together', type: 'hair_multi', strands: 14, spread: 1.0 },
-    { id: 'hair_flowing', name: 'Flowing Hair', desc: 'Aerodynamic wind-swept hair locks', type: 'hair_flowing', variant: 1 },
-    { id: 'hair_flowing_2', name: 'Flowing Hair 2', desc: 'Waving cascading hair curves', type: 'hair_flowing', variant: 2 },
-    { id: 'hair_eyelash', name: 'Eyelash', desc: 'Tapered curved eyelash stroke generator', type: 'hair_lash' },
-    { id: 'hair_two_fine_strings', name: 'Two Fine Strings', desc: 'Twin parallel thread filaments', type: 'hair_multi', strands: 2, spread: 0.5 },
-    { id: 'hair_three_fine_strings', name: 'Three Fine Strings', desc: 'Triple fine string guides', type: 'hair_multi', strands: 3, spread: 0.6 },
-    { id: 'hair_three_strings', name: 'Three Strings', desc: 'Triple standard yarn tracks', type: 'hair_multi', strands: 3, spread: 0.8 },
-    { id: 'hair_five_strings', name: 'Five Strings', desc: 'Quintuple ribbon strands', type: 'hair_multi', strands: 5, spread: 1.0 },
-    { id: 'hair_four_squares', name: 'Four Squares', desc: 'Geometric 4-lane raster guide', type: 'hair_multi_shape', shape: 'square', count: 4 },
-    { id: 'hair_eight_squares', name: 'Eight Squares', desc: 'Geometric 8-lane matrix rake', type: 'hair_multi_shape', shape: 'square', count: 8 },
-    { id: 'hair_tangled', name: 'Tangled Hair', desc: 'Cross-stitched irregular chaotic hair strands', type: 'hair_tangled' },
-    { id: 'hair_curly', name: 'Curly Hair', desc: 'Spiral sine-wave hair ringlets', type: 'hair_curly', freq: 1.0 },
-    { id: 'hair_curly_2', name: 'Curly Hair 2', desc: 'Tight afro/corkscrew curls', type: 'hair_curly', freq: 1.8 },
-    { id: 'hair_curly_3', name: 'Curly Hair 3', desc: 'Loose beach waves and serpentine ringlets', type: 'hair_curly', freq: 0.6 },
-    { id: 'hair_fur', name: 'Fur', desc: 'Soft realistic animal fur brush', type: 'hair_fur', variant: 1 },
-    { id: 'hair_fur_2', name: 'Fur 2', desc: 'Dense plush undercoat fur', type: 'hair_fur', variant: 2 },
-    { id: 'hair_thick_rake', name: 'Thick Rake', desc: 'Heavy comb/rake tool with broad tines', type: 'rake', tines: 5, tineWidth: 2.5 },
-    { id: 'hair_medium_rake', name: 'Medium Rake', desc: 'Standard 7-tine texturing comb', type: 'rake', tines: 7, tineWidth: 1.8 },
-    { id: 'hair_dense_rake', name: 'Dense Rake', desc: 'Fine 12-tine grooming comb', type: 'rake', tines: 12, tineWidth: 1.2 },
-    { id: 'hair_fine_rake', name: 'Fine Rake', desc: 'Micro 16-tine etching rake', type: 'rake', tines: 16, tineWidth: 0.8 },
-    { id: 'hair_tail', name: 'Tail', desc: 'Long tapering brush tail with soft bristle spread', type: 'hair_tail', variant: 1 },
-    { id: 'hair_tail_2', name: 'Tail 2', desc: 'Plumed bushy tail contour', type: 'hair_tail', variant: 2 }
-  ],
-  halftone: [
-    { id: 'halftone_dots_strong', name: 'Scalable Dots Strong', desc: 'Dynamic comic book Ben-Day dots scaling with pressure', type: 'halftone_dots', freq: 12, weight: 0.8 },
-    { id: 'halftone_dots_medium', name: 'Scalable Dots Medium', desc: 'Standard vintage pop-art dot screen', type: 'halftone_dots', freq: 14, weight: 0.5 },
-    { id: 'halftone_dots_light', name: 'Scalable Dots Light', desc: 'Subtle retro printing dots for highlights', type: 'halftone_dots', freq: 16, weight: 0.25 },
-    { id: 'halftone_soft_light_fixed', name: 'Soft Light Dots Fixed', desc: 'Static screen grid with soft edge dots (Light)', type: 'halftone_fixed_dots', size: 'light', soft: true },
-    { id: 'halftone_soft_med_fixed', name: 'Soft Medium Dots Fixed', desc: 'Static screen grid with soft edge dots (Medium)', type: 'halftone_fixed_dots', size: 'med', soft: true },
-    { id: 'halftone_soft_large_fixed', name: 'Soft Large Dots Fixed', desc: 'Static screen grid with soft edge dots (Large)', type: 'halftone_fixed_dots', size: 'large', soft: true },
-    { id: 'halftone_hard_small_fixed', name: 'Hard Small Dots Fixed', desc: 'Sharp micro offset printing dots', type: 'halftone_fixed_dots', size: 'small', soft: false },
-    { id: 'halftone_hard_med_fixed', name: 'Hard Medium Dots Fixed', desc: 'Sharp industrial screen-print dot grid', type: 'halftone_fixed_dots', size: 'med', soft: false },
-    { id: 'halftone_hard_large_fixed', name: 'Hard Large Dots Fixed', desc: 'Bold poster art halftone dots', type: 'halftone_fixed_dots', size: 'large', soft: false },
-    { id: 'halftone_soft_lines_rising', name: 'Soft Lines Rising Fixed', desc: '45-degree ascending soft hatching lines', type: 'halftone_lines', angle: 45, soft: true },
-    { id: 'halftone_soft_lines_falling', name: 'Soft Lines Falling Fixed', desc: '-45 degree descending soft hatching lines', type: 'halftone_lines', angle: -45, soft: true },
-    { id: 'halftone_soft_mesh', name: 'Soft Mesh Fixed', desc: 'Woven soft screen mesh grid', type: 'halftone_mesh', soft: true },
-    { id: 'halftone_hard_lines_rising', name: 'Hard Lines Rising Fixed', desc: 'Engraving style 45° crisp parallel lines', type: 'halftone_lines', angle: 45, soft: false },
-    { id: 'halftone_hard_lines_falling', name: 'Hard Lines Falling Fixed', desc: 'Engraving style -45° crisp parallel lines', type: 'halftone_lines', angle: -45, soft: false },
-    { id: 'halftone_hard_lines_crossing', name: 'Hard Lines Crossing Fixed', desc: 'Precision cross-hatching matrix', type: 'halftone_mesh', soft: false },
-    { id: 'halftone_spray_strong', name: 'Spray Shader Strong', desc: 'High-density stippled airbrush tone', type: 'spray_shader', density: 0.9 },
-    { id: 'halftone_spray_medium', name: 'Spray Shader Medium', desc: 'Medium vintage risograph stippling', type: 'spray_shader', density: 0.5 },
-    { id: 'halftone_spray_light', name: 'Spray Shader Light', desc: 'Sparse risograph shader grain', type: 'spray_shader', density: 0.2 },
-    { id: 'halftone_extra_dense_pixels', name: 'Extra Dense Pixels', desc: 'Tight Bayer matrix dithering (90% fill)', type: 'bayer_dither', level: 4 },
-    { id: 'halftone_dense_pixels', name: 'Dense Pixels', desc: 'Classic 4x4 ordered dither pattern (75% fill)', type: 'bayer_dither', level: 3 },
-    { id: 'halftone_pixels', name: 'Pixels', desc: '50% checkerboard digital screentone', type: 'bayer_dither', level: 2 },
-    { id: 'halftone_loose_pixels', name: 'Loose Pixels', desc: '25% dispersed dither stars', type: 'bayer_dither', level: 1 },
-    { id: 'halftone_extra_loose_pixels', name: 'Extra Loose Pixels', desc: '10% minimalist starlight pixel scatter', type: 'bayer_dither', level: 0 }
-  ],
-  inking: [
-    { id: 'inking_basic', name: 'Basic Ink', desc: 'Flawless manga & comic inking brush with pressure taper', type: 'ink', taper: true, bleed: 0 },
-    { id: 'inking_fragmented', name: 'Fragmented Ink', desc: 'Distressed vintage nib ink with occasional tooth breaks', type: 'ink_fragmented' },
-    { id: 'inking_inverted', name: 'Basic Ink Inverted', desc: 'Negative ink dynamic channel', type: 'ink', inverted: true },
-    { id: 'inking_smooth', name: 'Ink Smooth', desc: 'Ultra-stabilized vector-feel brush pen', type: 'ink_smooth' },
-    { id: 'inking_rough', name: 'Rough Ink', desc: 'Fibrous sumi-e ink on textured washi paper', type: 'ink_rough' },
-    { id: 'inking_rough_h', name: 'Rough Ink Horizontal', desc: 'Horizontally feathered dry ink brush', type: 'ink_rough_axis', axis: 'h' },
-    { id: 'inking_rough_v', name: 'Rough Ink Vertical', desc: 'Vertically feathered dry ink brush', type: 'ink_rough_axis', axis: 'v' },
-    { id: 'inking_dry', name: 'Dry Ink', desc: 'Scumbled dry brush showing bristles on fast flicks', type: 'ink_dry', intensity: 1 },
-    { id: 'inking_dry_2', name: 'Dry Ink 2', desc: 'Heavily starved bristle brush with scratchy texture', type: 'ink_dry', intensity: 2 },
-    { id: 'inking_versatile', name: 'Versatile Ink', desc: 'Adaptive nib switching from hairline to bold slash', type: 'ink_versatile' },
-    { id: 'inking_wash_1', name: 'Ink Wash', desc: 'Delicate dilute India ink wash with wet edges', type: 'ink_wash', opacity: 0.35 },
-    { id: 'inking_wash_2', name: 'Ink Wash 2', desc: 'Medium tea-tone ink wash for shading', type: 'ink_wash', opacity: 0.6 },
-    { id: 'inking_wash_3', name: 'Ink Wash 3', desc: 'Deep carbon ink puddle with soft blooming', type: 'ink_wash', opacity: 0.85 },
-    { id: 'inking_messy', name: 'Messy Ink', desc: 'Expressive dripping street art calligraphy ink', type: 'ink_messy' },
-    { id: 'inking_splatter', name: 'Ink Splatter', desc: 'Violent flicked quill splatter droplets', type: 'ink_splatter' },
-    { id: 'inking_droplets_dynamic', name: 'Ink Droplets Dynamic', desc: 'Velocity-governed droplet size spattering', type: 'ink_droplets', mode: 'dynamic' },
-    { id: 'inking_droplets_smooth', name: 'Ink Droplets Smooth', desc: 'Evenly balanced circular droplets stream', type: 'ink_droplets', mode: 'smooth' },
-    { id: 'inking_droplets_dense', name: 'Ink Droplets Dense', desc: 'Thick spray of ink rain and fine specks', type: 'ink_droplets', mode: 'dense' }
-  ],
-  outline: [
-    { id: 'outline_variable', name: 'Variable Outline Width', desc: 'Dynamic tubular stroke with hollow center', type: 'outline', dynamic: true, continuous: false },
-    { id: 'outline_cont_variable', name: 'Continuous Variable Outline', desc: 'Seamless connected dual-rim ribbon', type: 'outline', dynamic: true, continuous: true },
-    { id: 'outline_fixed', name: 'Fixed Outline Width', desc: 'Uniform architectural double-line pen', type: 'outline', dynamic: false, continuous: false },
-    { id: 'outline_cont_fixed', name: 'Continuous Fixed Outline', desc: 'Constant-thickness ribbon outline', type: 'outline', dynamic: false, continuous: true },
-    { id: 'outline_3d_fixed', name: '3D Fixed Outline Width', desc: 'Offset extrusion outline giving 3D comic depth', type: 'outline_3d', dynamic: false },
-    { id: 'outline_cont_3d_fixed', name: 'Continuous 3D Fixed Outline', desc: 'Isometric wireframe pipe outline', type: 'outline_3d', dynamic: false, continuous: true }
-  ],
-  particles: [
-    { id: 'particles_noise_1', name: 'Noise 1', desc: 'Fine sand / cosmic dust particulate field', type: 'particles_noise', grain: 'fine' },
-    { id: 'particles_noise_2', name: 'Noise 2', desc: 'Coarse gravel & static interference noise', type: 'particles_noise', grain: 'coarse' },
-    { id: 'particles_bubbles_small', name: 'Bubbles Small', desc: 'Micro aquatic bubble stream', type: 'particles_bubbles', size: 'small' },
-    { id: 'particles_bubbles_medium', name: 'Bubbles Medium', desc: 'Floating soap bubbles with specular highlight rims', type: 'particles_bubbles', size: 'medium' },
-    { id: 'particles_bubbles_large', name: 'Bubbles Large', desc: 'Giant buoyant iridescent bubbles', type: 'particles_bubbles', size: 'large' },
-    { id: 'particles_dyn_noise_wide', name: 'Dynamic Noise Wide', desc: 'Broad galactic nebular dust cloud', type: 'particles_noise_dyn', spread: 'wide' },
-    { id: 'particles_dyn_noise_dense', name: 'Dynamic Noise Dense', desc: 'Concentrated blizzard of high-energy sparkles', type: 'particles_noise_dyn', spread: 'dense' }
-  ],
-  pixel: [
-    { id: 'pixel_art', name: 'Pixel Art', desc: 'Pure non-interpolated retro pixel pen (snaps to integer grid)', type: 'pixel', size: 1 },
-    { id: 'pixel_apart', name: 'Pixel Apart', desc: 'Staggered checkerboard pixel steps', type: 'pixel_apart' },
-    { id: 'pixel_tiles', name: 'Pixel Tiles', desc: '4x4 pixel mosaic tile stamp', type: 'pixel_tiles', tileSize: 4 },
-    { id: 'pixel_line', name: 'Pixel Line', desc: 'Bresenham integer pixel line algorithm', type: 'pixel_line' },
-    { id: 'pixel_edge', name: 'Pixel Edge', desc: 'Stepped 8-bit staircase edge contour', type: 'pixel_edge' },
-    { id: 'pixel_edge_h', name: 'Pixel Edge Horizontal', desc: 'Horizontal-biased 16-bit pixel edge', type: 'pixel_edge_axis', axis: 'h' },
-    { id: 'pixel_edge_v', name: 'Pixel Edge Vertical', desc: 'Vertical-biased 16-bit pixel edge', type: 'pixel_edge_axis', axis: 'v' },
-    { id: 'pixel_scorched_twig', name: 'Scorched Twig', desc: 'Charred pixelated brittle tree twig', type: 'pixel_twig' }
-  ],
-  sketching: [
-    { id: 'sketching_pencil_6b', name: 'Pencil 6B', desc: 'Very soft, dark graphite with heavy paper grain tooth', type: 'pencil', grade: '6B', softness: 0.95 },
-    { id: 'sketching_pencil_4b', name: 'Pencil 4B', desc: 'Soft artist drafting pencil for rich shading & contours', type: 'pencil', grade: '4B', softness: 0.8 },
-    { id: 'sketching_pencil_2b', name: 'Pencil 2B', desc: 'Balanced sketching pencil, responsive to pressure', type: 'pencil', grade: '2B', softness: 0.65 },
-    { id: 'sketching_pencil_hb', name: 'Pencil HB', desc: 'Standard medium pencil for clean linework', type: 'pencil', grade: 'HB', softness: 0.5 },
-    { id: 'sketching_pencil_h', name: 'Pencil H', desc: 'Hard, light graphite pencil for faint initial guidelines', type: 'pencil', grade: 'H', softness: 0.3 },
-    { id: 'sketching_hard_graphite', name: 'Hard Graphite Pencil', desc: 'Dense industrial drafting graphite with crisp edges', type: 'pencil', grade: '2H', softness: 0.2 },
-    { id: 'sketching_technical', name: 'Technical Pencil', desc: '0.5mm mechanical drafting pencil with constant diameter', type: 'pencil_tech', width: 1.5 },
-    { id: 'sketching_round', name: 'Pencil Round', desc: 'Shaded pencil with circular graphite stamp', type: 'pencil_round' },
-    { id: 'sketching_round_soft', name: 'Pencil Round Soft', desc: 'Blended graphite stump / tortillon effect', type: 'pencil_round_soft' },
-    { id: 'sketching_crayon_1', name: 'Crayon 1', desc: 'Wax crayon with heavy paper tooth texture', type: 'crayon', variant: 1 },
-    { id: 'sketching_crayon_2', name: 'Crayon 2', desc: 'Conte crayon with velvety pastel feel', type: 'crayon', variant: 2 },
-    { id: 'sketching_crayon_3', name: 'Crayon 3', desc: 'Oil pastel with buttery pigment build-up', type: 'crayon', variant: 3 },
-    { id: 'sketching_crayon_4', name: 'Crayon 4', desc: 'Chalk pastel for broad textured sweeps', type: 'crayon', variant: 4 },
-    { id: 'sketching_crayon_6', name: 'Crayon 6', desc: 'Heavy pigment lithograph crayon', type: 'crayon', variant: 6 }
-  ],
-  watercolor: [
-    { id: 'watercolor_1', name: 'Watercolor 1', desc: 'Soft transparent wash with wet edge pigment accumulation', type: 'watercolor', wetness: 0.4 },
-    { id: 'watercolor_2', name: 'Watercolor 2', desc: 'Flowing wet-on-wet paint with soft bleeding blooms', type: 'watercolor', wetness: 0.7 },
-    { id: 'watercolor_3', name: 'Watercolor 3', desc: 'Glazing watercolor for layering luminous tints', type: 'watercolor', wetness: 0.5 },
-    { id: 'watercolor_4', name: 'Watercolor 4', desc: 'Granulating mineral watercolor showing pigment sediment', type: 'watercolor', wetness: 0.6, granulate: true },
-    { id: 'watercolor_5', name: 'Watercolor 5', desc: 'Dry brush watercolor skimming over rough cold-press paper', type: 'watercolor', dry: true }
-  ]
-};
 
 export const DEFAULT_BRUSH_SETTINGS = {
   sizeControl: 'OFF',        // 'OFF' | 'Pressure' | 'Velocity'
@@ -274,8 +82,166 @@ export class ProceduralBrushEngine {
   constructor() {
     this.stampCache = new Map();
     this.settingsCache = new Map();
+    this.assetManager = brushAssetManager;
+    this.strokeBufferCanvas = null;
     this.storageKey = 'thecraft_brush_settings_v2';
     this.loadAllSettings();
+  }
+
+  
+  getStrokeBuffer(width, height) {
+    if (!this.strokeBufferCanvas) {
+      this.strokeBufferCanvas = document.createElement('canvas');
+    }
+    const curW = this.strokeBufferCanvas.width;
+    const curH = this.strokeBufferCanvas.height;
+    if (curW < width || curH < height) {
+      this.strokeBufferCanvas.width = Math.max(curW, width);
+      this.strokeBufferCanvas.height = Math.max(curH, height);
+    }
+    return this.strokeBufferCanvas;
+  }
+
+  renderTexturedImageBrush(ctx, pts, color, baseSize, usePressure, brush) {
+    if (!pts || pts.length === 0) return;
+
+    // 1. Bounding box with safety margin
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const padding = Math.max(40, baseSize * 2.5);
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    minX = Math.floor(minX - padding);
+    minY = Math.floor(minY - padding);
+    maxX = Math.ceil(maxX + padding);
+    maxY = Math.ceil(maxY + padding);
+    const width = Math.max(1, maxX - minX);
+    const height = Math.max(1, maxY - minY);
+
+    // 2. Offscreen stroke buffer
+    const bufCanvas = this.getStrokeBuffer(width, height);
+    const bufCtx = bufCanvas.getContext('2d');
+    bufCtx.clearRect(0, 0, width, height);
+
+    // 3. Distance spacing along path
+    const spacingPercent = (brush.spacing !== undefined && brush.spacing > 0) ? brush.spacing : 15;
+    const stepDist = Math.max(1.0, baseSize * (spacingPercent / 100));
+
+    // 4. Dab stamp renderer
+    let stampIndex = 0;
+    const drawStampAt = (x, y, press, angle) => {
+      const dabSize = Math.max(1.0, baseSize * (usePressure ? press : 1.0));
+      let dabAlpha = brush.defaultOpacity !== undefined ? brush.defaultOpacity : (brush.opacity !== undefined ? brush.opacity : 1.0);
+      if (brush.opacityControl && usePressure) {
+        dabAlpha = Math.min(1.0, dabAlpha * press);
+      }
+
+      const localX = x - minX;
+      const localY = y - minY;
+
+      bufCtx.save();
+      bufCtx.translate(localX, localY);
+      bufCtx.globalAlpha = Math.max(0.01, Math.min(1.0, dabAlpha));
+
+      // Rotation handling
+      if (brush.rotation === 'random') {
+        const r = (coordRand(x, y, stampIndex * 7) * 2 - 1) * Math.PI;
+        bufCtx.rotate(r);
+      } else if (brush.rotation === 'follow' && angle !== undefined) {
+        bufCtx.rotate(angle);
+      } else if (typeof brush.rotation === 'number') {
+        bufCtx.rotate(brush.rotation);
+      }
+
+      // Seamless horizontal or parallel flip
+      if (brush.seamless === 'horizontal' || brush.seamless === 'parallel') {
+        const flip = coordRand(x, y, stampIndex * 13) < 0.5 ? -1 : 1;
+        bufCtx.scale(flip, 1);
+      }
+
+      // Stamp shape or direct circle
+      if (brush.image) {
+        const tileIndex = brush.tiled ? (stampIndex % 4) : 0;
+        const dab = this.assetManager.getTintedDab(brush.image, color, tileIndex);
+        if (dab) {
+          bufCtx.drawImage(dab, -dabSize / 2, -dabSize / 2, dabSize, dabSize);
+        } else {
+          bufCtx.fillStyle = color;
+          bufCtx.beginPath();
+          bufCtx.arc(0, 0, dabSize / 2, 0, Math.PI * 2);
+          bufCtx.fill();
+        }
+      } else {
+        // Direct brush with paper grain texture
+        bufCtx.fillStyle = color;
+        bufCtx.beginPath();
+        bufCtx.arc(0, 0, dabSize / 2, 0, Math.PI * 2);
+        bufCtx.fill();
+      }
+
+      bufCtx.restore();
+      stampIndex++;
+    };
+
+    // Walk polyline with stepDist interpolation
+    if (pts.length === 1) {
+      drawStampAt(pts[0].x, pts[0].y, pts[0].pressure || 0.5, 0);
+    } else {
+      let prev = pts[0];
+      let distAcc = 0;
+      drawStampAt(prev.x, prev.y, prev.pressure || 0.5, 0);
+
+      for (let i = 1; i < pts.length; i++) {
+        const curr = pts[i];
+        const dx = curr.x - prev.x;
+        const dy = curr.y - prev.y;
+        const segLen = Math.hypot(dx, dy);
+        if (segLen === 0) continue;
+
+        const angle = Math.atan2(dy, dx);
+        let t = 0;
+        while (distAcc + (1 - t) * segLen >= stepDist) {
+          const advance = stepDist - distAcc;
+          t += advance / segLen;
+          distAcc = 0;
+          const x = prev.x + dx * t;
+          const y = prev.y + dy * t;
+          const press = (prev.pressure || 0.5) * (1 - t) + (curr.pressure || 0.5) * t;
+          drawStampAt(x, y, press, angle);
+        }
+        distAcc += (1 - t) * segLen;
+        prev = curr;
+      }
+    }
+
+    // 5. Apply grain texture mask (destination-in)
+    if (brush.texture) {
+      const grainImg = this.assetManager.getImage(brush.texture);
+      if (grainImg) {
+        bufCtx.save();
+        bufCtx.globalCompositeOperation = brush.composite || 'destination-in';
+        const pat = bufCtx.createPattern(grainImg, 'repeat');
+        if (pat) {
+          if (typeof pat.setTransform === 'function') {
+            const matrix = new DOMMatrix().translate(-minX, -minY);
+            pat.setTransform(matrix);
+          }
+          bufCtx.fillStyle = pat;
+          bufCtx.fillRect(0, 0, width, height);
+        }
+        bufCtx.restore();
+      }
+    }
+
+    // 6. Draw buffered stroke onto canvas context
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(bufCanvas, 0, 0, width, height, minX, minY, width, height);
+    ctx.restore();
   }
 
   loadAllSettings() {
@@ -421,7 +387,7 @@ export class ProceduralBrushEngine {
     const pts = stroke.points;
     if (!pts || pts.length === 0) return;
 
-    const brush = this.getBrushById(stroke.brushPreset);
+    const brush = this.getBrushById(stroke.brushPreset) || (stroke.tool === 'pencil' ? this.getBrushById('sketching_pencil_hb') : null);
     const color = stroke.color || '#6366f1';
     const settings = stroke.brushSettings || this.getBrushSettings(stroke.brushPreset);
 
@@ -448,6 +414,12 @@ export class ProceduralBrushEngine {
 
     if (!brush) {
       this.renderStandardStroke(ctx, pts, color, baseSize, usePressure);
+      ctx.restore();
+      return;
+    }
+
+    if (brush.image || brush.texture) {
+      this.renderTexturedImageBrush(ctx, pts, color, baseSize, usePressure, brush);
       ctx.restore();
       return;
     }
@@ -1163,109 +1135,46 @@ export class ProceduralBrushEngine {
     }
   }
 
-  renderCharcoal(ctx, pts, color, size, usePressure, brush) {
-    const spacing = Math.max(2, size * 0.18);
-    const roughness = brush.roughness ?? 0.7;
-
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const steps = Math.max(1, Math.floor(dist / spacing));
-
-      for (let s = 0; s <= steps; s++) {
-        const t = s / steps;
-        const x = p1.x + (p2.x - p1.x) * t;
-        const y = p1.y + (p2.y - p1.y) * t;
-        const press = usePressure ? ((p1.pressure || 0.5) * (1 - t) + (p2.pressure || 0.5) * t) : 1.0;
-        const r = Math.max(2, (size * press) / 2);
-
-        // Core soft pigment deposit
-        ctx.fillStyle = color;
-        const coreAlpha = Math.min(0.6, 0.25 + roughness * 0.35);
-        ctx.globalAlpha = coreAlpha;
-        ctx.beginPath();
-        ctx.arc(x, y, r * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Distinct gritty charcoal flecks catching on paper tooth
-        const dots = Math.floor(r * 3.5 * roughness);
-        for (let k = 0; k < dots; k++) {
-          const a = coordRand(x, y, k * 4 + 1) * Math.PI * 2;
-          const d = Math.pow(coordRand(x, y, k * 4 + 2), 0.75) * r;
-          const px = x + Math.cos(a) * d;
-          const py = y + Math.sin(a) * d;
-          ctx.globalAlpha = (1 - (d / r) * 0.45) * (coordRand(x, y, k * 4 + 3) * 0.6 + 0.35);
-          const dotSize = coordRand(x, y, k * 4 + 4) * 2.2 + 0.8;
-          ctx.fillRect(px, py, dotSize, dotSize);
-        }
-      }
-    }
+  renderCharcoal(ctx, pts, color, size, usePressure, brush = {}) {
+    const charcoalBrush = {
+      ...brush,
+      image: brush.image || 'assets/brushes/shape/tiled09.png',
+      texture: brush.texture || 'assets/brushes/grain/paper7.png',
+      composite: brush.composite || 'destination-in',
+      spacing: brush.spacing || 70,
+      defaultOpacity: brush.defaultOpacity || 0.9,
+      tiled: true,
+      rotation: 'once',
+      pressure: true
+    };
+    this.renderTexturedImageBrush(ctx, pts, color, size, usePressure, charcoalBrush);
   }
 
-  renderPencil(ctx, pts, color, size, usePressure, brush) {
-    if (!pts || pts.length === 0) return;
-    const softness = brush.softness ?? 0.6;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1.0, 0.45 + softness * 0.5);
-
-    // Continuous smooth core pencil line
-    this.renderStandardStroke(ctx, pts, color, Math.max(1, size * 0.75), usePressure);
-
-    // Graphite tooth and grain dispersion along the stroke
-    ctx.fillStyle = color;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const grainCount = Math.floor(dist * 0.6);
-      const w = Math.max(1, size * 0.6);
-
-      for (let g = 0; g < grainCount; g++) {
-        const gt = coordRand(p1.x, p1.y, g * 4 + 1);
-        const gx = p1.x + (p2.x - p1.x) * gt + (coordRand(p1.x, p2.y, g * 4 + 2) - 0.5) * w;
-        const gy = p1.y + (p2.y - p1.y) * gt + (coordRand(p2.x, p1.y, g * 4 + 3) - 0.5) * w;
-        ctx.globalAlpha = coordRand(gx, gy, g * 4 + 4) * 0.3 + 0.1;
-        ctx.fillRect(gx, gy, 1, 1);
-      }
-    }
-    ctx.restore();
+  renderPencil(ctx, pts, color, size, usePressure, brush = {}) {
+    const pencilBrush = {
+      ...brush,
+      image: brush.image || 'assets/brushes/shape/cone8.png',
+      texture: brush.texture || 'assets/brushes/grain/paper7.png',
+      composite: brush.composite || 'destination-in',
+      spacing: brush.spacing || 20,
+      defaultOpacity: brush.defaultOpacity || 0.1,
+      pressure: true
+    };
+    this.renderTexturedImageBrush(ctx, pts, color, size, usePressure, pencilBrush);
   }
 
-  renderCrayon(ctx, pts, color, size, usePressure, brush) {
-    if (!pts || pts.length === 0) return;
-    const variant = brush.variant || 1;
-    ctx.save();
-    ctx.fillStyle = color;
-
-    // Wax crayon: continuous core with heavy porous tooth dispersion along sides
-    this.renderStandardStroke(ctx, pts, color, Math.max(1, size * 0.55), usePressure);
-
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const steps = Math.max(1, Math.floor(dist * 0.8));
-
-      for (let s = 0; s <= steps; s++) {
-        const t = s / steps;
-        const x = p1.x + (p2.x - p1.x) * t;
-        const y = p1.y + (p2.y - p1.y) * t;
-        const press = usePressure ? ((p1.pressure || 0.5) * (1 - t) + (p2.pressure || 0.5) * t) : 1.0;
-        const w = size * press;
-        const toothParticles = Math.floor(Math.max(2, w * 0.7));
-
-        for (let k = 0; k < toothParticles; k++) {
-          const ox = (coordRand(x, y, k * 3 + 1) - 0.5) * w;
-          const oy = (coordRand(x, y, k * 3 + 2) - 0.5) * w;
-          if (coordRand(x + ox, y + oy, k + variant) > (0.2 + press * 0.5)) continue;
-          ctx.globalAlpha = 0.35 + coordRand(ox, oy, 5) * 0.55;
-          const dotSize = 1.2 + coordRand(ox, oy, 7) * 1.5;
-          ctx.fillRect(x + ox, y + oy, dotSize, dotSize);
-        }
-      }
-    }
-    ctx.restore();
+  renderCrayon(ctx, pts, color, size, usePressure, brush = {}) {
+    const crayonBrush = {
+      ...brush,
+      image: brush.image || 'assets/brushes/shape/52.png',
+      texture: brush.texture || 'assets/brushes/grain/paper7.png',
+      composite: brush.composite || 'destination-in',
+      spacing: brush.spacing || 10,
+      defaultOpacity: brush.defaultOpacity || 0.5,
+      rotation: 'random',
+      pressure: usePressure
+    };
+    this.renderTexturedImageBrush(ctx, pts, color, size, usePressure, crayonBrush);
   }
 
   renderInk(ctx, pts, color, size, usePressure, brush) {
