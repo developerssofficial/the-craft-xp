@@ -23,8 +23,7 @@ async function getCreateClient() {
 
 const CONFIG_STORAGE_KEY = 'thecraft_supabase_config_v1';
 
-// Default Supabase configuration
-// Users can provide their own credentials via the UI or by setting this config
+// Clean default configuration — zero credentials committed to source code
 export const DEFAULT_SUPABASE_CONFIG = {
   url: '',
   anonKey: ''
@@ -35,20 +34,45 @@ class SupabaseService {
     this.client = null;
     this.currentUser = null;
     this.authListeners = new Set();
-    this.config = this.loadConfig();
+    this.config = { ...DEFAULT_SUPABASE_CONFIG };
+    this.initPromise = null;
     this.init();
   }
 
-  loadConfig() {
+  async loadRuntimeConfig() {
+    // 1. Try serverless backend endpoint /api/auth-config (Production / Vercel with env vars)
+    try {
+      const res = await fetch('/api/auth-config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url && data.anonKey) {
+          return data;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try local untracked config file (local dev server with .auth-config.json)
+    try {
+      const res = await fetch('/.auth-config.json');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url && data.anonKey) {
+          return data;
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback to localStorage if previously configured
     try {
       const stored = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.url && parsed.anonKey) {
+        if (parsed.url && parsed.anonKey && parsed.url.startsWith('https://')) {
           return parsed;
         }
       }
     } catch (_) {}
+
     return { ...DEFAULT_SUPABASE_CONFIG };
   }
 
@@ -69,6 +93,16 @@ class SupabaseService {
   }
 
   async init() {
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = this._doInit();
+    return this.initPromise;
+  }
+
+  async _doInit() {
+    if (!this.isConfigured()) {
+      this.config = await this.loadRuntimeConfig();
+    }
+
     if (!this.isConfigured()) {
       this.client = null;
       this.currentUser = null;
@@ -102,7 +136,16 @@ class SupabaseService {
       console.error('[SupabaseService] Initialization failed:', err);
       this.client = null;
       return null;
+    } finally {
+      this.initPromise = null;
     }
+  }
+
+  async ensureClient() {
+    if (!this.client) {
+      await this.init();
+    }
+    return this.client;
   }
 
   getClient() {
@@ -139,10 +182,11 @@ class SupabaseService {
    * Redirects user to Google OAuth consent screen.
    */
   async signInWithGoogle() {
-    if (!this.client) throw new Error('Supabase is not configured. Please enter your Supabase URL & Anon Key.');
+    const client = await this.ensureClient();
+    if (!client) throw new Error('Authentication service is currently initializing. Please try again in a moment.');
     
     const redirectTo = window.location.origin + window.location.pathname;
-    const { data, error } = await this.client.auth.signInWithOAuth({
+    const { data, error } = await client.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
@@ -161,10 +205,11 @@ class SupabaseService {
    * Send a passwordless Magic Link to any Gmail / Email address.
    */
   async signInWithOtp(email) {
-    if (!this.client) throw new Error('Supabase is not configured. Please enter your Supabase URL & Anon Key.');
+    const client = await this.ensureClient();
+    if (!client) throw new Error('Authentication service is currently initializing. Please try again in a moment.');
     
     const emailRedirectTo = window.location.origin + window.location.pathname;
-    const { data, error } = await this.client.auth.signInWithOtp({
+    const { data, error } = await client.auth.signInWithOtp({
       email: email.trim(),
       options: {
         emailRedirectTo
@@ -179,9 +224,10 @@ class SupabaseService {
    * Standard Email & Password Sign In
    */
   async signInWithPassword(email, password) {
-    if (!this.client) throw new Error('Supabase is not configured. Please enter your Supabase URL & Anon Key.');
+    const client = await this.ensureClient();
+    if (!client) throw new Error('Authentication service is currently initializing. Please try again in a moment.');
     
-    const { data, error } = await this.client.auth.signInWithPassword({
+    const { data, error } = await client.auth.signInWithPassword({
       email: email.trim(),
       password
     });
@@ -196,10 +242,11 @@ class SupabaseService {
    * Standard Email & Password Sign Up
    */
   async signUp(email, password, fullName = '') {
-    if (!this.client) throw new Error('Supabase is not configured. Please enter your Supabase URL & Anon Key.');
+    const client = await this.ensureClient();
+    if (!client) throw new Error('Authentication service is currently initializing. Please try again in a moment.');
     
     const emailRedirectTo = window.location.origin + window.location.pathname;
-    const { data, error } = await this.client.auth.signUp({
+    const { data, error } = await client.auth.signUp({
       email: email.trim(),
       password,
       options: {

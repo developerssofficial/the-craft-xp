@@ -58,10 +58,6 @@ export class AuthModal {
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <span>Save Current to Cloud</span>
         </button>
-        <button id="userConfigBtn" class="dropdown-item">
-          <i class="fa-solid fa-gear"></i>
-          <span>Supabase Settings</span>
-        </button>
         <div class="dropdown-divider"></div>
         <button id="userLogoutBtn" class="dropdown-item danger-item">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -107,11 +103,6 @@ export class AuthModal {
     authContainer.querySelector('#userSaveCloudBtn').addEventListener('click', () => {
       this.userDropdownEl.classList.add('hidden');
       events.emit('cloud:save-requested');
-    });
-
-    authContainer.querySelector('#userConfigBtn').addEventListener('click', () => {
-      this.userDropdownEl.classList.add('hidden');
-      this.openModal('config');
     });
 
     authContainer.querySelector('#userLogoutBtn').addEventListener('click', async () => {
@@ -190,9 +181,6 @@ export class AuthModal {
         <div class="auth-tabs">
           <button class="auth-tab-btn active" data-tab="signin">Sign In</button>
           <button class="auth-tab-btn" data-tab="signup">Create Account</button>
-          <button class="auth-tab-btn" data-tab="config">
-            <i class="fa-solid fa-bolt"></i> Supabase Setup
-          </button>
         </div>
 
         <!-- TAB 1: SIGN IN -->
@@ -267,41 +255,6 @@ export class AuthModal {
           </form>
         </div>
 
-        <!-- TAB 3: SUPABASE CONFIGURATION -->
-        <div class="auth-tab-pane" id="paneConfig">
-          <div class="config-banner">
-            <i class="fa-solid fa-shield-halved"></i>
-            <div>
-              <strong>100% Private Cloud Storage via Supabase</strong>
-              <p>Each user's drawings are completely isolated with Row Level Security (RLS). No user can ever see or access another user's artwork.</p>
-            </div>
-          </div>
-
-          <form id="supabaseConfigForm" class="auth-form">
-            <div class="form-group">
-              <label for="sbUrlInput">Supabase Project URL</label>
-              <input type="url" id="sbUrlInput" placeholder="https://xyzcompany.supabase.co" required>
-              <small class="form-hint">Found under Supabase Dashboard &gt; Project Settings &gt; API</small>
-            </div>
-            <div class="form-group">
-              <label for="sbKeyInput">Supabase Anon Public Key</label>
-              <input type="text" id="sbKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required>
-              <small class="form-hint">Use your public 'anon' key (safe for browser client)</small>
-            </div>
-            <div class="config-status-row">
-              <span id="sbConnectionBadge" class="sb-status-badge">Checking connection...</span>
-            </div>
-            <button type="submit" class="auth-submit-btn">
-              <i class="fa-solid fa-floppy-disk"></i>
-              <span>Save & Connect Supabase</span>
-            </button>
-          </form>
-
-          <div class="config-footer-hint">
-            <p>Need database setup? Copy our <code>supabase_schema.sql</code> into your Supabase SQL Editor to enable tables and RLS security.</p>
-          </div>
-        </div>
-
         <!-- Auth Status Banner -->
         <div id="authStatusMessage" class="auth-status-msg hidden"></div>
       </div>
@@ -332,8 +285,7 @@ export class AuthModal {
     const tabBtns = this.modalEl.querySelectorAll('.auth-tab-btn');
     const panes = {
       signin: this.modalEl.querySelector('#paneSignIn'),
-      signup: this.modalEl.querySelector('#paneSignUp'),
-      config: this.modalEl.querySelector('#paneConfig')
+      signup: this.modalEl.querySelector('#paneSignUp')
     };
 
     tabBtns.forEach(btn => {
@@ -345,26 +297,6 @@ export class AuthModal {
     });
 
     this.clearStatus();
-
-    // Populate config fields if opening config tab
-    if (tabName === 'config') {
-      const urlInput = this.modalEl.querySelector('#sbUrlInput');
-      const keyInput = this.modalEl.querySelector('#sbKeyInput');
-      const badge = this.modalEl.querySelector('#sbConnectionBadge');
-
-      if (urlInput) urlInput.value = supabaseService.config.url || '';
-      if (keyInput) keyInput.value = supabaseService.config.anonKey || '';
-
-      if (badge) {
-        if (supabaseService.isConfigured()) {
-          badge.className = 'sb-status-badge connected';
-          badge.textContent = '✓ Supabase Configured';
-        } else {
-          badge.className = 'sb-status-badge disconnected';
-          badge.textContent = 'Not Configured (Enter credentials below)';
-        }
-      }
-    }
   }
 
   bindAuthActions() {
@@ -375,11 +307,6 @@ export class AuthModal {
     ];
     googleBtns.forEach(btn => {
       btn?.addEventListener('click', async () => {
-        if (!supabaseService.isConfigured()) {
-          this.switchTab('config');
-          this.showStatus('Please configure your Supabase Project URL and Anon Key first.', 'warning');
-          return;
-        }
         try {
           this.showStatus('Connecting to Google (Gmail)...', 'info');
           await supabaseService.signInWithGoogle();
@@ -393,11 +320,6 @@ export class AuthModal {
     const signInForm = this.modalEl.querySelector('#signInForm');
     signInForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!supabaseService.isConfigured()) {
-        this.switchTab('config');
-        this.showStatus('Please configure your Supabase Project URL and Anon Key first.', 'warning');
-        return;
-      }
       const email = this.modalEl.querySelector('#signInEmail').value;
       const pass = this.modalEl.querySelector('#signInPassword').value;
       try {
@@ -413,11 +335,6 @@ export class AuthModal {
     // 3. Passwordless Magic Link to Gmail
     const magicLinkBtn = this.modalEl.querySelector('#magicLinkSignInBtn');
     magicLinkBtn?.addEventListener('click', async () => {
-      if (!supabaseService.isConfigured()) {
-        this.switchTab('config');
-        this.showStatus('Please configure your Supabase Project URL and Anon Key first.', 'warning');
-        return;
-      }
       const email = this.modalEl.querySelector('#signInEmail').value;
       if (!email) {
         this.showStatus('Please enter your Gmail / Email address above.', 'warning');
@@ -436,11 +353,6 @@ export class AuthModal {
     const signUpForm = this.modalEl.querySelector('#signUpForm');
     signUpForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!supabaseService.isConfigured()) {
-        this.switchTab('config');
-        this.showStatus('Please configure your Supabase Project URL and Anon Key first.', 'warning');
-        return;
-      }
       const name = this.modalEl.querySelector('#signUpName').value;
       const email = this.modalEl.querySelector('#signUpEmail').value;
       const pass = this.modalEl.querySelector('#signUpPassword').value;
@@ -450,26 +362,6 @@ export class AuthModal {
         this.showStatus('Account created! Verification link sent to your email.', 'success');
       } catch (err) {
         this.showStatus(err.message, 'danger');
-      }
-    });
-
-    // 5. Supabase Settings Form
-    const configForm = this.modalEl.querySelector('#supabaseConfigForm');
-    configForm?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const url = this.modalEl.querySelector('#sbUrlInput').value;
-      const key = this.modalEl.querySelector('#sbKeyInput').value;
-      try {
-        this.showStatus('Connecting to Supabase...', 'info');
-        await supabaseService.saveConfig(url, key);
-        this.showStatus('Supabase connected successfully! You can now sign in.', 'success');
-        const badge = this.modalEl.querySelector('#sbConnectionBadge');
-        if (badge) {
-          badge.className = 'sb-status-badge connected';
-          badge.textContent = '✓ Supabase Configured';
-        }
-      } catch (err) {
-        this.showStatus('Connection failed: ' + err.message, 'danger');
       }
     });
   }
