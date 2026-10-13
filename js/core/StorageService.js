@@ -65,10 +65,14 @@ export class StorageService {
     try {
       const layerDataPromises = this.doc.layers.map(async (layer) => {
         let rasterBlob = null;
-        if (layer.rasterCanvas) {
+        if (layer.rasterCanvas && layer.rasterDirty) {
           rasterBlob = await new Promise(resolve => {
             layer.rasterCanvas.toBlob(blob => resolve(blob), 'image/png');
           });
+          layer._cachedRasterBlob = rasterBlob;
+          layer.rasterDirty = false;
+        } else if (layer._cachedRasterBlob) {
+          rasterBlob = layer._cachedRasterBlob;
         }
 
         return {
@@ -79,7 +83,7 @@ export class StorageService {
           opacity: layer.opacity,
           blendMode: layer.blendMode,
           type: layer.type,
-          elements: JSON.parse(JSON.stringify(layer.elements)),
+          elements: layer.elements,
           rasterBlob: rasterBlob
         };
       });

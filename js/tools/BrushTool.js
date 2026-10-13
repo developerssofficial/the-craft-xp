@@ -23,6 +23,7 @@ export class BrushTool extends BaseTool {
     this.lastX = 0;
     this.lastY = 0;
     this.currentVelocity = 0;
+    this.rafId = null;
   }
 
   onPointerDown(e, ctx) {
@@ -144,12 +145,23 @@ export class BrushTool extends BaseTool {
       this.rainbowHue = (this.rainbowHue + 3) % 360;
     }
 
-    this.renderPreview(ctx.renderer.previewCtx, ctx);
+    if (!this.rafId) {
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        if (this.isDrawing && this.currentRenderer && this.currentRenderer.previewCtx) {
+          this.renderPreview(this.currentRenderer.previewCtx, ctx);
+        }
+      });
+    }
   }
 
   onPointerUp(e, ctx) {
     if (!this.isDrawing) return;
     this.isDrawing = false;
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
 
     // End live real-time eraser composite session
     if (this.mode === 'eraser' && ctx.renderer && ctx.renderer.endLiveEraser) {
@@ -317,6 +329,10 @@ export class BrushTool extends BaseTool {
 
   cleanup() {
     this.isDrawing = false;
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
     this.points = [];
     this.symPoints = [];
     if (this.currentRenderer) {

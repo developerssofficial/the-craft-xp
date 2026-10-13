@@ -20,9 +20,16 @@ export class Layer {
     // Optional raster backing canvas for pixel-based tools (fill, raster brushes)
     this.rasterCanvas = null;
     this.rasterCtx = null;
+    this.rasterDirty = false;
+    this._cachedRasterDataUrl = options.rasterDataUrl || null;
     if (options.rasterDataUrl) {
       this.loadRasterFromDataUrl(options.rasterDataUrl);
     }
+  }
+
+  markRasterDirty() {
+    this.rasterDirty = true;
+    this._cachedRasterDataUrl = null;
   }
 
   ensureRasterCanvas(width, height) {
@@ -66,6 +73,8 @@ export class Layer {
     if (this.rasterCtx) {
       this.rasterCtx.clearRect(0, 0, this.rasterCanvas.width, this.rasterCanvas.height);
     }
+    this._cachedRasterDataUrl = null;
+    this.rasterDirty = false;
   }
 
   clone() {
@@ -76,16 +85,20 @@ export class Layer {
       opacity: this.opacity,
       blendMode: this.blendMode,
       type: this.type,
-      elements: JSON.parse(JSON.stringify(this.elements))
+      elements: [...this.elements]
     });
     if (this.rasterCanvas) {
       cloned.ensureRasterCanvas(this.rasterCanvas.width, this.rasterCanvas.height);
       cloned.rasterCtx.drawImage(this.rasterCanvas, 0, 0);
+      cloned.rasterDirty = this.rasterDirty;
+      cloned._cachedRasterDataUrl = this._cachedRasterDataUrl;
     }
     return cloned;
   }
 
   loadRasterFromDataUrl(dataUrl) {
+    this._cachedRasterDataUrl = dataUrl;
+    this.rasterDirty = false;
     const img = new Image();
     img.onload = () => {
       this.ensureRasterCanvas(img.width, img.height);
@@ -95,6 +108,22 @@ export class Layer {
   }
 
   toJSON() {
+    let rasterUrl = this._cachedRasterDataUrl;
+    if (this.rasterDirty) {
+      if (this.rasterCanvas) {
+        try {
+          rasterUrl = this.rasterCanvas.toDataURL('image/png');
+          this._cachedRasterDataUrl = rasterUrl;
+        } catch (_) {
+          rasterUrl = null;
+        }
+      } else {
+        rasterUrl = null;
+        this._cachedRasterDataUrl = null;
+      }
+      this.rasterDirty = false;
+    }
+
     return {
       id: this.id,
       name: this.name,
@@ -103,8 +132,8 @@ export class Layer {
       opacity: this.opacity,
       blendMode: this.blendMode,
       type: this.type,
-      elements: JSON.parse(JSON.stringify(this.elements)),
-      rasterDataUrl: this.rasterCanvas ? this.rasterCanvas.toDataURL('image/png') : null
+      elements: this.elements,
+      rasterDataUrl: rasterUrl || null
     };
   }
 

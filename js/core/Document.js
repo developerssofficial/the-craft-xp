@@ -125,6 +125,7 @@ export class Document {
       targetLayer.rasterCtx.globalCompositeOperation = currentLayer.blendMode;
       targetLayer.rasterCtx.drawImage(currentLayer.rasterCanvas, 0, 0);
       targetLayer.rasterCtx.restore();
+      if (targetLayer.markRasterDirty) targetLayer.markRasterDirty();
     }
 
     // Remove the current layer

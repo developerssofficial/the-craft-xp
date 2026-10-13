@@ -101,9 +101,12 @@ export class ToolManager {
     }
   }
 
-  getExecutionContext(e) {
+  getExecutionContext(e, refreshRect = false) {
     const canvas = this.ctx.paintCanvas;
-    const rect = canvas.getBoundingClientRect();
+    if (refreshRect || !this._cachedCanvasRect) {
+      this._cachedCanvasRect = canvas.getBoundingClientRect();
+    }
+    const rect = this._cachedCanvasRect;
     const clientX = e.clientX;
     const clientY = e.clientY;
 
@@ -136,7 +139,7 @@ export class ToolManager {
 
   handlePointerDown(e) {
     if (!this.activeTool) return;
-    const ctx = this.getExecutionContext(e);
+    const ctx = this.getExecutionContext(e, true);
     if (!ctx.activeLayer) return;
     if (ctx.activeLayer.locked) {
       events.emit('toast', { message: 'Layer is locked', type: 'warning' });
@@ -147,6 +150,7 @@ export class ToolManager {
 
   handlePointerMove(e) {
     if (!this.activeTool) return;
+    if (!this.activeTool.isDrawing && this.activeTool.id !== 'eraser') return;
     const ctx = this.getExecutionContext(e);
     if (!ctx.activeLayer) return;
     this.activeTool.onPointerMove(e, ctx);
@@ -155,11 +159,13 @@ export class ToolManager {
   handlePointerUp(e) {
     if (!this.activeTool) return;
     const ctx = this.getExecutionContext(e);
+    this._cachedCanvasRect = null;
     if (!ctx.activeLayer) return;
     this.activeTool.onPointerUp(e, ctx);
   }
 
   handlePointerLeave(e) {
+    this._cachedCanvasRect = null;
     if (this.ctx.renderer && this.ctx.renderer.clearCursorRing) {
       this.ctx.renderer.clearCursorRing();
     }

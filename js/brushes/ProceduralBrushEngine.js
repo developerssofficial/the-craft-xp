@@ -17,12 +17,15 @@ export function coordRand(x, y, seed = 0) {
   return n - Math.floor(n);
 }
 
-/**
- * Robust color-to-RGBA converter preserving hue and saturation during alpha fade.
- * Guarantees zero dark/dirty rims during radial gradient interpolation.
- */
+const _colorRgbaCache = new Map();
+
 export function colorToRgba(color, alpha = 1.0) {
   if (!color) return `rgba(99, 102, 241, ${alpha})`;
+  const key = `${color}_${alpha}`;
+  const cached = _colorRgbaCache.get(key);
+  if (cached) return cached;
+
+  let result = color;
   if (color.startsWith('#')) {
     let c = color.replace('#', '');
     if (c.length === 3) c = c.split('').map(x => x + x).join('');
@@ -30,22 +33,26 @@ export function colorToRgba(color, alpha = 1.0) {
       const r = parseInt(c.substring(0, 2), 16);
       const g = parseInt(c.substring(2, 4), 16);
       const b = parseInt(c.substring(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      result = `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
   } else if (color.startsWith('rgba')) {
     const parts = color.match(/[\d.]+/g);
     if (parts && parts.length >= 3) {
-      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+      result = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
     }
   } else if (color.startsWith('rgb')) {
     const parts = color.match(/[\d.]+/g);
     if (parts && parts.length >= 3) {
-      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+      result = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
     }
   } else if (color.startsWith('hsl')) {
-    return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+    result = color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
   }
-  return color;
+
+  if (_colorRgbaCache.size < 500) {
+    _colorRgbaCache.set(key, result);
+  }
+  return result;
 }
 
 export const BRUSH_CATEGORIES = [
@@ -84,7 +91,12 @@ export class ProceduralBrushEngine {
     this.settingsCache = new Map();
     this.assetManager = brushAssetManager;
     this.strokeBufferCanvas = null;
-    this.storageKey = 'thecraft_brush_settings_v2';
+    this.brushMap = new Map();
+    for (const cat of Object.keys(BRUSH_CATALOG)) {
+      for (const b of BRUSH_CATALOG[cat]) {
+        this.brushMap.set(b.id, b);
+      }
+    }
     this.loadAllSettings();
   }
 
@@ -297,11 +309,7 @@ export class ProceduralBrushEngine {
 
   getBrushById(brushId) {
     if (!brushId) return null;
-    for (const cat of Object.keys(BRUSH_CATALOG)) {
-      const found = BRUSH_CATALOG[cat].find(b => b.id === brushId);
-      if (found) return found;
-    }
-    return null;
+    return this.brushMap.get(brushId) || null;
   }
 
   getAirbrushDab(color, soft = 0.6, grain = 0) {

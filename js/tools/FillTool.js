@@ -60,6 +60,7 @@ export class FillTool extends BaseTool {
     this.floodFill(layerImgData, activeLayerData, startX, startY, width, height, targetR, targetG, targetB, targetA, fillColor);
 
     rasterCtx.putImageData(layerImgData, 0, 0);
+    ctx.activeLayer.markRasterDirty();
 
     // Create undo/redo command
     const layerId = ctx.activeLayer.id;
@@ -71,6 +72,7 @@ export class FillTool extends BaseTool {
         const l = doc.layers.find(layer => layer.id === layerId);
         if (l && l.rasterCtx) {
           l.rasterCtx.putImageData(nextData, 0, 0);
+          if (l.markRasterDirty) l.markRasterDirty();
           events.emit('document:changed');
         }
       },
@@ -78,6 +80,7 @@ export class FillTool extends BaseTool {
         const l = doc.layers.find(layer => layer.id === layerId);
         if (l && l.rasterCtx) {
           l.rasterCtx.putImageData(prevData, 0, 0);
+          if (l.markRasterDirty) l.markRasterDirty();
           events.emit('document:changed');
         }
       }
