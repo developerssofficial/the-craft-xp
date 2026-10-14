@@ -3,6 +3,7 @@
  * Bootstraps the Animation Workspace, Canvas Stage, Timeline, Onion Skinning,
  * Multi-layer per Frame, Exporter, and Autosave Persistence.
  */
+import '../core/securityGuard.js';
 import { events } from '../core/EventBus.js';
 import { Document } from '../core/Document.js';
 import { CommandManager } from '../core/CommandManager.js';

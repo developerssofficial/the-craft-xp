@@ -3,6 +3,7 @@
  * Coordinates Document, CommandManager, CanvasRenderer, Viewport,
  * ToolManager, LayersPanel, and UI components.
  */
+import './core/securityGuard.js';
 import { events } from './core/EventBus.js';
 import { Document } from './core/Document.js';
 import { CommandManager } from './core/CommandManager.js';
