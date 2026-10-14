@@ -18,6 +18,15 @@ async function getClient() {
 }
 
 export default async function handler(req, res) {
+  // Enable CORS headers for internal API calls
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -27,9 +36,25 @@ export default async function handler(req, res) {
     const db = client.db('the_craft');
     const collection = db.collection('projects');
 
-    const project = await collection.findOne({ projectId: 'latest_session' });
+    const userId = req.query.userId || req.headers['x-user-id'];
+    const projectType = req.query.type || 'drawing';
+
+    let project = null;
+
+    if (userId && userId !== 'anonymous') {
+      // 1. Try user-specific project ID
+      project = await collection.findOne({ projectId: `${userId}_${projectType}` });
+      // 2. Try secondary match by userId and type
+      if (!project) {
+        project = await collection.findOne({ userId, type: projectType });
+      }
+    } else {
+      // Guest / Anonymous fallback
+      project = await collection.findOne({ projectId: 'latest_session' });
+    }
+
     if (!project) {
-      return res.status(404).json({ error: 'No project found in MongoDB' });
+      return res.status(404).json({ error: 'No project found in cloud storage' });
     }
 
     return res.status(200).json(project);

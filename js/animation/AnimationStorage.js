@@ -1,7 +1,7 @@
 /**
  * The Craft — Animation Storage Service
- * Handles independent IndexedDB autosave and .craftanim file import/export.
- * Completely isolated from normal drawing projects.
+ * Handles independent IndexedDB autosave, per-user cloud sync (/api/save & /api/load),
+ * and .craftanim file import/export. Completely isolated from normal drawing projects.
  */
 import { AnimationProject } from './AnimationModel.js';
 import { events } from '../core/EventBus.js';
@@ -17,7 +17,9 @@ export class AnimationStorage {
     this.project = project;
     this.db = null;
     this.debounceTimer = null;
+    this.cloudSyncTimer = null;
     this.isSaving = false;
+    this.isSyncingCloud = false;
     this.statusBadgeEl = null;
 
     this.initDB();
@@ -61,9 +63,23 @@ export class AnimationStorage {
         this.statusBadgeEl.textContent = 'Saving...';
         this.statusBadgeEl.className = 'save-status-badge saving';
         break;
+      case 'syncing':
+        this.statusBadgeEl.textContent = 'Syncing...';
+        this.statusBadgeEl.className = 'save-status-badge saving';
+        break;
       case 'saved':
         this.statusBadgeEl.textContent = 'Autosaved';
         this.statusBadgeEl.className = 'save-status-badge saved';
+        break;
+      case 'cloud_saved':
+        this.statusBadgeEl.textContent = 'Saved to Cloud';
+        this.statusBadgeEl.className = 'save-status-badge saved';
+        clearTimeout(this._badgeTimer);
+        this._badgeTimer = setTimeout(() => {
+          if (this.statusBadgeEl.textContent === 'Saved to Cloud') {
+            this.statusBadgeEl.textContent = 'Autosaved';
+          }
+        }, 3000);
         break;
       case 'error':
         this.statusBadgeEl.textContent = 'Save error';
@@ -72,14 +88,18 @@ export class AnimationStorage {
     }
   }
 
-  scheduleAutosave(delayMs = 1200) {
+  scheduleAutosave(delayMs = 1500) {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
     this.updateStatusBadge('editing');
 
     this.debounceTimer = setTimeout(() => {
-      this.saveSession();
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(() => this.saveSession(), { timeout: 2000 });
+      } else {
+        this.saveSession();
+      }
     }, delayMs);
   }
 
@@ -90,9 +110,11 @@ export class AnimationStorage {
 
     try {
       const serializedData = this.project.toJSON();
+      serializedData.timestamp = Date.now();
       const user = supabaseService.getCurrentUser();
       const sessionKey = user ? `anim_${user.id}` : ANIM_AUTOSAVE_KEY;
 
+      // 1. Local IndexedDB save
       await new Promise((resolve, reject) => {
         const tx = this.db.transaction(ANIM_STORE_NAME, 'readwrite');
         const store = tx.objectStore(ANIM_STORE_NAME);
@@ -102,6 +124,11 @@ export class AnimationStorage {
       });
 
       this.updateStatusBadge('saved');
+
+      // 2. Schedule debounced cloud sync if user is logged in
+      if (user) {
+        this.scheduleCloudSync(user, serializedData);
+      }
     } catch (err) {
       console.error('[AnimationStorage] Autosave failed:', err);
       this.updateStatusBadge('error');
@@ -110,61 +137,120 @@ export class AnimationStorage {
     }
   }
 
+  scheduleCloudSync(user, data, delayMs = 4500) {
+    if (this.cloudSyncTimer) {
+      clearTimeout(this.cloudSyncTimer);
+    }
+
+    this.cloudSyncTimer = setTimeout(async () => {
+      if (this.isSyncingCloud) return;
+      this.isSyncingCloud = true;
+      this.updateStatusBadge('syncing');
+
+      try {
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': user.id
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            userEmail: user.email,
+            type: 'animation',
+            data: data,
+            timestamp: data.timestamp || Date.now()
+          })
+        });
+
+        if (res.ok) {
+          this.updateStatusBadge('cloud_saved');
+        } else {
+          this.updateStatusBadge('saved');
+        }
+      } catch (err) {
+        console.warn('[AnimationStorage] Cloud sync failed:', err);
+        this.updateStatusBadge('saved');
+      } finally {
+        this.isSyncingCloud = false;
+      }
+    }, delayMs);
+  }
+
   async loadSession() {
+    const user = supabaseService.getCurrentUser();
+
+    // 1. If user is logged in, attempt to fetch their cloud animation from /api/load
+    if (user) {
+      try {
+        const cloudRes = await fetch(`/api/load?userId=${user.id}&type=animation`, {
+          headers: { 'x-user-id': user.id }
+        });
+
+        if (cloudRes.ok) {
+          const cloudPayload = await cloudRes.json();
+          const cloudData = cloudPayload.data || cloudPayload;
+
+          if (cloudData && cloudData.frames && cloudData.frames.length > 0) {
+            // Also inspect local IndexedDB to check which is newer
+            const localData = await this.readLocalSession(`anim_${user.id}`);
+            if (localData && localData.timestamp && localData.timestamp > (cloudData.timestamp || 0)) {
+              console.log('[AnimationStorage] Local animation session is newer than cloud.');
+              this.scheduleCloudSync(user, localData, 3000);
+              return AnimationProject.fromJSON(localData);
+            }
+
+            console.log(`[AnimationStorage] Restored cloud animation from /api/load for ${user.email}`);
+            return AnimationProject.fromJSON(cloudData);
+          }
+        }
+      } catch (cloudErr) {
+        console.warn('[AnimationStorage] /api/load animation fallback to local:', cloudErr);
+      }
+    }
+
+    // 2. Load from local IndexedDB
+    const sessionKey = user ? `anim_${user.id}` : ANIM_AUTOSAVE_KEY;
+    let record = await this.readLocalSession(sessionKey);
+
+    if (!record && sessionKey !== ANIM_AUTOSAVE_KEY) {
+      record = await this.readLocalSession(ANIM_AUTOSAVE_KEY);
+    }
+
+    if (!record || !record.frames || record.frames.length === 0) {
+      return null;
+    }
+
+    try {
+      return AnimationProject.fromJSON(record);
+    } catch (err) {
+      console.error('[AnimationStorage] Error parsing saved animation:', err);
+      return null;
+    }
+  }
+
+  async readLocalSession(key) {
     if (!this.db) {
       await this.initDB();
     }
-
-    const user = supabaseService.getCurrentUser();
-    const sessionKey = user ? `anim_${user.id}` : ANIM_AUTOSAVE_KEY;
-
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction(ANIM_STORE_NAME, 'readonly');
       const store = tx.objectStore(ANIM_STORE_NAME);
-      const req = store.get(sessionKey);
-
-      req.onsuccess = () => {
-        let record = req.result;
-        if (!record && sessionKey !== ANIM_AUTOSAVE_KEY) {
-          const fallbackReq = store.get(ANIM_AUTOSAVE_KEY);
-          fallbackReq.onsuccess = () => {
-            record = fallbackReq.result;
-            if (!record || !record.frames || record.frames.length === 0) {
-              resolve(null);
-              return;
-            }
-            try {
-              resolve(AnimationProject.fromJSON(record));
-            } catch (err) {
-              resolve(null);
-            }
-          };
-          return;
-        }
-
-        if (!record || !record.frames || record.frames.length === 0) {
-          resolve(null);
-          return;
-        }
-        try {
-          const loadedProject = AnimationProject.fromJSON(record);
-          resolve(loadedProject);
-        } catch (err) {
-          console.error('[AnimationStorage] Error parsing saved animation:', err);
-          resolve(null);
-        }
-      };
-
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
       req.onerror = (e) => reject(e.target.error);
     });
   }
 
   async clearSession() {
     if (!this.db) await this.initDB();
+    const user = supabaseService.getCurrentUser();
+    const sessionKey = user ? `anim_${user.id}` : ANIM_AUTOSAVE_KEY;
+
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction(ANIM_STORE_NAME, 'readwrite');
       const store = tx.objectStore(ANIM_STORE_NAME);
-      const req = store.delete(ANIM_AUTOSAVE_KEY);
+      const req = store.delete(sessionKey);
       req.onsuccess = () => resolve();
       req.onerror = (e) => reject(e.target.error);
     });

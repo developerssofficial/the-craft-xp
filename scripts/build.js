@@ -1,33 +1,38 @@
 /**
- * The Craft PRO — Automated Production Build & Obfuscation Pipeline
+ * The Craft PRO — High-Performance Production Build & Obfuscation Pipeline
  * 
- * Generates an optimized, domain-locked, and clone-protected production build in /dist.
- * Preserves the original source code in /js and root for continuous development.
- * Keeps serverless /api untouched at the project root for Vercel.
+ * Performance & Security Architecture:
+ * 1. Entry Security Guards (securityGuard.js, app.js, AnimationApp.js, login.html):
+ *    Protected with Domain Lock + Light String Array (stringArrayEncoding: [] — zero runtime decoding lag).
+ * 2. Hot-Path Canvas/Engine Modules (brushes, tools, canvas renderer, layers, math):
+ *    Processed with Terser minification & identifier mangling ONLY.
+ *    No string array indirection or control-flow wrapping on pointermove/requestAnimationFrame loops.
+ *    Guarantees native 60fps canvas drawing and silky smooth animation playback.
  */
 
 import fs from 'fs';
 import path from 'path';
 import JavaScriptObfuscator from 'javascript-obfuscator';
-import { minify } from 'html-minifier-terser';
+import { minify as terserMinify } from 'terser';
+import { minify as htmlMinify } from 'html-minifier-terser';
 
 const ROOT_DIR = process.cwd();
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const JS_DIR = path.join(ROOT_DIR, 'js');
 const ASSETS_DIR = path.join(ROOT_DIR, 'assets');
 
-// High-performance obfuscation configuration (60fps canvas safe)
-const OBFUSCATION_OPTIONS = {
+// Zero-overhead obfuscation for entry security checkpoints
+const ENTRY_OBFUSCATION_OPTIONS = {
   compact: true,
-  controlFlowFlattening: false,       // Keep false to avoid canvas render loop lag
-  deadCodeInjection: false,           // Keep false to prevent memory bloat
+  controlFlowFlattening: false,
+  deadCodeInjection: false,
   identifierNamesGenerator: 'hexadecimal',
   identifiersPrefix: '_c',
-  renameGlobals: false,               // Crucial for ES module exports/imports
+  renameGlobals: false,
   stringArray: true,
-  stringArrayEncoding: ['base64'],
-  stringArrayThreshold: 0.8,
-  transformObjectKeys: false,         // Preserves canvas 2D context & event properties
+  stringArrayEncoding: [],       // NO base64/rc4 decryption overhead!
+  stringArrayThreshold: 0.75,
+  transformObjectKeys: false,
   domainLock: [
     'thecraft.dev.cv',
     'the-craft-xp.vercel.app',
@@ -38,6 +43,21 @@ const OBFUSCATION_OPTIONS = {
   target: 'browser'
 };
 
+// Pure native minification + mangling for 60fps hot path modules
+const HOTPATH_TERSER_OPTIONS = {
+  module: true,
+  mangle: {
+    toplevel: false // preserve module-level export/import symbols
+  },
+  compress: {
+    passes: 1,
+    drop_console: false
+  },
+  format: {
+    comments: false
+  }
+};
+
 const HTML_MINIFY_OPTIONS = {
   collapseWhitespace: true,
   removeComments: true,
@@ -45,9 +65,15 @@ const HTML_MINIFY_OPTIONS = {
   removeAttributeQuotes: false
 };
 
-/**
- * Minifies CSS by removing comments and unnecessary whitespace
- */
+function isEntrySecurityFile(relPath) {
+  const norm = relPath.replace(/\\/g, '/');
+  return (
+    norm === 'core/securityGuard.js' ||
+    norm === 'app.js' ||
+    norm === 'animation/AnimationApp.js'
+  );
+}
+
 function minifyCss(cssContent) {
   return cssContent
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -57,9 +83,6 @@ function minifyCss(cssContent) {
     .trim();
 }
 
-/**
- * Recursively copies a directory
- */
 function copyDirSync(src, dest) {
   if (!fs.existsSync(src)) return;
   fs.mkdirSync(dest, { recursive: true });
@@ -77,9 +100,6 @@ function copyDirSync(src, dest) {
   }
 }
 
-/**
- * Recursively gathers all files in a directory matching an extension
- */
 function getAllFiles(dir, ext) {
   let results = [];
   if (!fs.existsSync(dir)) return results;
@@ -98,7 +118,7 @@ function getAllFiles(dir, ext) {
 async function build() {
   const startTime = Date.now();
   console.log('----------------------------------------------------');
-  console.log('🚀 Starting The Craft PRO Production Build...');
+  console.log('⚡ Starting The Craft PRO 60fps Production Build...');
   console.log('----------------------------------------------------');
 
   // 1. Clean & recreate dist
@@ -114,7 +134,7 @@ async function build() {
     copyDirSync(ASSETS_DIR, path.join(DIST_DIR, 'assets'));
   }
 
-  // Copy local auth config if present (fallback for local preview server)
+  // Copy local auth config if present (fallback for local dev preview server)
   const localAuthConfig = path.join(ROOT_DIR, '.auth-config.json');
   if (fs.existsSync(localAuthConfig)) {
     fs.copyFileSync(localAuthConfig, path.join(DIST_DIR, '.auth-config.json'));
@@ -132,10 +152,11 @@ async function build() {
     }
   }
 
-  // 4. Obfuscate JavaScript files
-  console.log('🔒 Obfuscating JavaScript ES modules with Domain Lock...');
+  // 4. Process JavaScript files (Selective Guard Obfuscation vs High-Speed Native Terser)
+  console.log('🔒 Processing JavaScript modules (Entry Guards + 60fps Native Hot-Paths)...');
   const jsFiles = getAllFiles(JS_DIR, '.js');
-  let obfuscatedCount = 0;
+  let guardCount = 0;
+  let hotpathCount = 0;
 
   for (const jsFile of jsFiles) {
     const relPath = path.relative(JS_DIR, jsFile);
@@ -143,19 +164,34 @@ async function build() {
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
     const rawCode = fs.readFileSync(jsFile, 'utf8');
-    try {
-      const obfuscationResult = JavaScriptObfuscator.obfuscate(rawCode, OBFUSCATION_OPTIONS);
-      fs.writeFileSync(destPath, obfuscationResult.getObfuscatedCode(), 'utf8');
-      obfuscatedCount++;
-    } catch (err) {
-      console.warn(`⚠️ Warning: Failed to obfuscate ${relPath}, falling back to original:`, err.message);
-      fs.writeFileSync(destPath, rawCode, 'utf8');
+
+    if (isEntrySecurityFile(relPath)) {
+      // Security Entry Guard: Obfuscate with domain lock & light string table (zero base64 overhead)
+      try {
+        const obfuscated = JavaScriptObfuscator.obfuscate(rawCode, ENTRY_OBFUSCATION_OPTIONS).getObfuscatedCode();
+        fs.writeFileSync(destPath, obfuscated, 'utf8');
+        guardCount++;
+      } catch (err) {
+        console.warn(`   ⚠️ Guard obfuscation warning on ${relPath}:`, err.message);
+        fs.writeFileSync(destPath, rawCode, 'utf8');
+      }
+    } else {
+      // Hot-path canvas engine / brushes / tools: Terser minification + mangling ONLY
+      try {
+        const terserResult = await terserMinify(rawCode, HOTPATH_TERSER_OPTIONS);
+        fs.writeFileSync(destPath, terserResult.code || rawCode, 'utf8');
+        hotpathCount++;
+      } catch (err) {
+        console.warn(`   ⚠️ Terser minification warning on ${relPath}:`, err.message);
+        fs.writeFileSync(destPath, rawCode, 'utf8');
+      }
     }
   }
-  console.log(`   ✓ Successfully obfuscated ${obfuscatedCount} JS modules.`);
+  console.log(`   ✓ Protected ${guardCount} Security Entry Guards (Domain-Locked, Zero Decrypt Overhead).`);
+  console.log(`   ✓ Minified & Mangled ${hotpathCount} Hot-Path Modules for Native 60fps Canvas Speed.`);
 
   // 5. Process & Minify HTML pages (index.html, animation.html, login.html)
-  console.log('📄 Minifying HTML files & securing inline scripts...');
+  console.log('📄 Minifying HTML files & securing login scripts...');
   const htmlFiles = ['index.html', 'animation.html', 'login.html'];
   for (const file of htmlFiles) {
     const srcPath = path.join(ROOT_DIR, file);
@@ -163,16 +199,16 @@ async function build() {
 
     let htmlContent = fs.readFileSync(srcPath, 'utf8');
 
-    // If file is login.html, obfuscate its inline module script as well
+    // If file is login.html, obfuscate its inline module script with ENTRY_OBFUSCATION_OPTIONS
     if (file === 'login.html') {
       const scriptRegex = /(<script type="module">)([\s\S]*?)(<\/script>)/i;
       const match = htmlContent.match(scriptRegex);
       if (match && match[2].trim()) {
         try {
           const inlineJs = match[2];
-          const obfuscatedInline = JavaScriptObfuscator.obfuscate(inlineJs, OBFUSCATION_OPTIONS).getObfuscatedCode();
+          const obfuscatedInline = JavaScriptObfuscator.obfuscate(inlineJs, ENTRY_OBFUSCATION_OPTIONS).getObfuscatedCode();
           htmlContent = htmlContent.replace(scriptRegex, `$1${obfuscatedInline}$3`);
-          console.log('   ✓ Obfuscated inline script in login.html');
+          console.log('   ✓ Protected inline script in login.html');
         } catch (err) {
           console.warn('   ⚠️ Failed to obfuscate login.html inline script:', err.message);
         }
@@ -180,7 +216,7 @@ async function build() {
     }
 
     try {
-      const minifiedHtml = await minify(htmlContent, HTML_MINIFY_OPTIONS);
+      const minifiedHtml = await htmlMinify(htmlContent, HTML_MINIFY_OPTIONS);
       fs.writeFileSync(path.join(DIST_DIR, file), minifiedHtml, 'utf8');
     } catch (err) {
       console.warn(`   ⚠️ HTML minification error in ${file}, using raw:`, err.message);

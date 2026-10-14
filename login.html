@@ -542,10 +542,45 @@ import { supabaseService } from './js/core/supabaseClient.js';
     if (name==='sad') setLook(0, 8);
   }
 
-  /* ---------- "boiling" pencil lines ---------- */
+  /* ---------- "boiling" pencil lines (optimized to prevent GPU lag) ---------- */
   if (!reduce){
-    const turb = $('#turb'); let s = 2;
-    setInterval(() => { s = (s % 9) + 1; turb.setAttribute('seed', s); }, 160);
+    const turb = $('#turb');
+    let s = 2;
+    let turbTimer = null;
+    let isTyping = false;
+
+    function tickTurb() {
+      if (document.hidden || isTyping || !turb) return;
+      s = (s % 9) + 1;
+      turb.setAttribute('seed', s);
+    }
+
+    turbTimer = setInterval(tickTurb, 350);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        clearInterval(turbTimer);
+        turbTimer = null;
+      } else if (!turbTimer) {
+        turbTimer = setInterval(tickTurb, 350);
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      clearInterval(turbTimer);
+      turbTimer = null;
+    });
+
+    window.addEventListener('focus', () => {
+      if (!turbTimer && !document.hidden) {
+        turbTimer = setInterval(tickTurb, 350);
+      }
+    });
+
+    [email, pass, fullName].forEach(inputEl => {
+      inputEl?.addEventListener('focus', () => { isTyping = true; });
+      inputEl?.addEventListener('blur', () => { isTyping = false; });
+    });
   }
 
   /* ---------- hand-drawn card border ---------- */
