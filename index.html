@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Craft — Pro Digital Drawing & Design Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Craft — Studio Desk</title>
   
-  <!-- Modern Fonts -->
+  <!-- Sketchbook Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
   <!-- Supabase Import Map -->
   <script type="importmap">
     {
@@ -20,531 +19,463 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="style.css?v=3.4">
-  <link rel="stylesheet" href="animation.css">
+
+  <link rel="stylesheet" href="style.css?v=4.0">
 </head>
-<body class="dark-theme">
-  <!-- Top Application Bar -->
-  <header class="app-header">
-    <div class="header-left">
-      <!-- Toggle Left Sidebar Button -->
-      <button id="toggleLeftDockBtn" class="icon-btn" title="Toggle Tools Dock (Ctrl+B)">
-        <i class="fa-solid fa-bars-staggered"></i>
-      </button>
+<body data-mode="draw">
+<div class="app" id="app">
 
-      <div class="app-logo">
-        <div class="logo-badge">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-        </div>
-        <div class="brand-info">
-          <span class="brand-name">The Craft</span>
-          <span class="brand-tag">PRO</span>
-        </div>
+  <!-- Top Header Navigation -->
+  <header class="top">
+    <div class="row1">
+      <div class="logo">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#2b2a33" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="20" r="17" fill="#f7c948"/>
+          <path d="M12 29 L13 23 L26 10 L30 14 L17 27 Z" fill="#fff"/>
+          <path d="M24 12 L28 16"/>
+        </svg>
+        <div><b>The Craft</b><small>sketch studio</small></div>
       </div>
+      
+      <!-- Studio Workspace Mode Switcher -->
+      <nav class="tabs" aria-label="Mode">
+        <button class="tab on" id="tabModeDraw" data-mode="draw">✏️ Draw</button>
+        <button class="tab" id="tabModeAnim" data-mode="anim">🎞️ Animate</button>
+      </nav>
 
-      <!-- Animation Workspace Switch Button -->
-      <a href="animation.html" id="openAnimationWorkspaceBtn" class="nav-switch-btn" title="Open Frame-by-Frame Animation Studio">
-        <i class="fa-solid fa-film"></i>
-        <span>Animation</span>
-      </a>
+      <!-- Autosave / Cloud Status Stamp -->
+      <span class="stamp" id="stamp">Saved ✓</span>
 
-      <div class="header-separator"></div>
-
-      <!-- Quick Action History -->
-      <div class="quick-history">
-        <button id="undoBtn" class="icon-btn" title="Undo (Ctrl+Z)" disabled>
-          <i class="fa-solid fa-arrow-rotate-left"></i>
-        </button>
-        <button id="redoBtn" class="icon-btn" title="Redo (Ctrl+Y)" disabled>
-          <i class="fa-solid fa-arrow-rotate-right"></i>
-        </button>
-        <button id="clearBtn" class="icon-btn danger" title="Clear Canvas">
-          <i class="fa-regular fa-trash-can"></i>
-        </button>
-      </div>
+      <!-- User Account Button -->
+      <button class="pbtn" id="account">👤 Sign in</button>
     </div>
 
-    <!-- Center Canvas View Controls -->
-    <div class="header-center">
-      <div class="zoom-pill">
-        <button id="zoomOutBtn" class="zoom-btn" title="Zoom Out (-)">
-          <i class="fa-solid fa-minus"></i>
-        </button>
-        <span id="zoomLevel">100%</span>
-        <button id="zoomInBtn" class="zoom-btn" title="Zoom In (+)">
-          <i class="fa-solid fa-plus"></i>
-        </button>
-        <button id="zoomResetBtn" class="zoom-btn" title="Reset Zoom (0)">
-          <i class="fa-solid fa-arrows-rotate"></i>
-        </button>
-      </div>
+    <!-- Secondary Action Bar -->
+    <div class="row2">
+      <button class="pbtn" id="undo" title="Undo (Ctrl+Z)">↶ Undo</button>
+      <button class="pbtn" id="redo" title="Redo (Ctrl+Y)">↷ Redo</button>
+      <button class="pbtn" id="clear" title="Clear layer">🗑 Clear</button>
+      <span class="sep"></span>
 
-      <div class="header-separator"></div>
+      <!-- Canvas Zoom Pill -->
+      <span class="pill" title="Zoom (+ / − / 0)">
+        <button id="zout" aria-label="Zoom out">−</button>
+        <b id="zval">100%</b>
+        <button id="zin" aria-label="Zoom in">+</button>
+        <button id="zreset" aria-label="Reset zoom" title="Reset (0)">⟲</button>
+      </span>
 
-      <!-- Canvas Toggles -->
-      <div class="mode-toggles">
-        <button id="gridToggleBtn" class="toggle-pill" title="Toggle Grid Overlay">
-          <i class="fa-solid fa-border-all"></i>
-          <span>Grid</span>
-        </button>
-        <button id="symmetryToggleBtn" class="toggle-pill" title="Toggle Mirror / Symmetry Drawing">
-          <i class="fa-solid fa-compass-drafting"></i>
-          <span>Symmetry</span>
-        </button>
-        <button id="zenModeBtn" class="toggle-pill" title="Zen Mode / Fullscreen Canvas (Tab or F)">
-          <i class="fa-solid fa-expand"></i>
-          <span>Zen Mode</span>
-        </button>
-        <button id="openBrushLibBtn" class="toggle-pill active-glow-btn" title="Open 180+ Handcrafted Brushes Library">
-          <i class="fa-solid fa-paintbrush"></i>
-          <span>Brushes</span>
-        </button>
-      </div>
+      <!-- Grid & Zen Mode Toggles -->
+      <button class="pbtn" id="gridT" title="Grid">▦ Grid</button>
+      <button class="pbtn" id="zenT" title="Zen mode (Z)">⛶ Zen</button>
 
-      <div class="header-separator"></div>
+      <!-- Canvas Background Selector -->
+      <select class="pbtn" id="bgSel" aria-label="Background">
+        <option value="white">Pure White</option>
+        <option value="dark">Dark Charcoal</option>
+        <option value="clear">Transparent</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <span class="swatch hide" id="bgSw" style="background:#fffdf6" title="Custom background">
+        <input type="color" id="bgCol" value="#fffdf6" aria-label="Custom background colour">
+      </span>
 
-      <!-- Quick Header Color Picker -->
-      <div class="header-color-picker-wrap" title="Active Brush Color — Click to choose ANY color">
-        <input type="color" id="headerColorPicker" value="#18181b">
-        <label for="headerColorPicker" class="header-color-indicator" id="headerColorIndicator" style="background-color: #18181b;"></label>
-      </div>
+      <!-- Animation Canvas Size Trigger -->
+      <button class="pbtn animonly" id="sizeBtn" title="Canvas size">⤢ Canvas size</button>
 
-      <!-- Quick Canvas Background Selector -->
-      <div class="bg-selector" title="Canvas Background Theme & Color">
-        <span class="bg-swatch-dot" id="bgSwatchDot" title="Current Background Color"></span>
-        <select id="bgPreset" title="Select Canvas Background Theme">
-          <option value="#ffffff" selected>Pure White</option>
-          <option value="transparent">Transparent (PNG)</option>
-          <option value="custom">Custom Color...</option>
-        </select>
-        <input type="color" id="bgCustomPicker" style="display:none;" value="#ffffff">
-        <label for="bgCustomPicker" class="bg-custom-btn" title="Pick Any Custom Background Color">
-          <i class="fa-solid fa-palette"></i>
-        </label>
-      </div>
-    </div>
+      <span class="spacer"></span>
 
-    <!-- Right Controls: Background, Import, Export -->
-    <div class="header-right">
-      <!-- Autosave Badge Indicator -->
-      <span id="saveStatusBadge" class="save-status-badge saved" title="Automatic IndexedDB session persistence">Autosaved</span>
+      <!-- File & Cloud Storage Actions -->
+      <button class="pbtn" id="open" title="Open .craft (Ctrl+O)">📂 Open</button>
+      <button class="pbtn" id="save" title="Save .craft (Ctrl+S)">💾 Save</button>
+      <button class="pbtn" id="import" title="Import Image Reference">🖼 Import</button>
+      <button class="pbtn" id="galBtn" title="My Cloud Drawings">☁ My drawings</button>
+      <button class="pbtn go" id="export" title="Export Artwork">⬇ Export</button>
 
-      <!-- Project File Actions -->
-      <button id="openProjectBtn" class="btn secondary-btn" title="Open .craft Project File">
-        <i class="fa-regular fa-folder-open"></i>
-        <span>Open</span>
-      </button>
-      <button id="saveProjectBtn" class="btn secondary-btn" title="Save Project (.craft)">
-        <i class="fa-regular fa-floppy-disk"></i>
-        <span>Save</span>
-      </button>
-
-      <!-- Image Import -->
-      <label for="imageUploadInput" class="btn secondary-btn" title="Upload Image / Reference">
-        <i class="fa-solid fa-cloud-arrow-up"></i>
-        <span>Import</span>
-      </label>
-      <input type="file" id="imageUploadInput" accept="image/*" style="display:none;">
-
-      <!-- Export Dropdown -->
-      <div class="dropdown-wrapper" id="exportDropdownWrap">
-        <button id="exportDropdownBtn" class="btn primary-btn">
-          <i class="fa-solid fa-arrow-down-to-bracket"></i>
-          <span>Export</span>
-          <i class="fa-solid fa-chevron-down caret-icon"></i>
-        </button>
-        <div class="menu-dropdown" id="exportMenu">
-          <button id="savePngBtn">
-            <i class="fa-regular fa-image"></i>
-            <div>
-              <strong>Export as PNG</strong>
-              <small>Lossless & transparent</small>
-            </div>
-          </button>
-          <button id="saveJpgBtn">
-            <i class="fa-solid fa-file-image"></i>
-            <div>
-              <strong>Export as JPG</strong>
-              <small>Optimized white background</small>
-            </div>
-          </button>
-          <button id="copyClipboardBtn">
-            <i class="fa-regular fa-clipboard"></i>
-            <div>
-              <strong>Copy to Clipboard</strong>
-              <small>Paste directly anywhere</small>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Mobile & Quick Brush Library Button -->
-      <button id="headerBrushLibBtn" class="icon-btn mobile-brush-btn" title="180+ Brushes Library">
-        <i class="fa-solid fa-paintbrush"></i>
-      </button>
-
-      <!-- Toggle Right Sidebar Button -->
-      <button id="toggleRightPanelBtn" class="icon-btn active-panel-toggle" title="Toggle Properties Panel">
-        <i class="fa-solid fa-sliders"></i>
-      </button>
+      <!-- Hidden File Inputs -->
+      <input type="file" id="fileImg" accept="image/png,image/jpeg,image/webp" hidden>
+      <input type="file" id="fileOpen" accept=".craft,.craftanim,application/json" hidden>
     </div>
   </header>
 
-  <!-- Workspace Container -->
-  <div class="app-workspace" id="appWorkspace">
-    <!-- Mobile Drawer Backdrop Overlay -->
-    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <!-- Workspace Area -->
+  <div class="workspace">
+    <!-- Left Wooden Tool Tray -->
+    <aside class="tray" aria-label="Tools" id="tray">
+      <div id="toolHost"></div>
+      <div class="tname" id="tname">Pencil<small>press P</small></div>
+      <button class="brushbtn" id="brushLib">📚 Brushes · K</button>
+    </aside>
 
-    <!-- Left Floating Tool Dock -->
-    <nav class="tool-dock" id="toolDock">
-      <div class="dock-collapse-header">
-        <button id="collapseDockBtn" class="dock-collapse-btn" title="Hide Tools Dock">
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
+    <!-- Center Stage & Drawing Paper -->
+    <main class="stage" id="stage">
+      <div class="zoomer" id="zoomer">
+        <div class="paper" id="paper" aria-label="Drawing paper">
+          <span class="tape a"></span>
+          <span class="tape b"></span>
+          <span class="tape c"></span>
+          <div class="over sheetbg"></div>
+          
+          <!-- Multi-layer stack -->
+          <div class="stack" id="stack"></div>
+
+          <!-- Onion skinning canvas (for animation mode) -->
+          <canvas class="over" id="onion"></canvas>
+
+          <!-- Live drawing/preview canvas -->
+          <canvas class="over" id="live"></canvas>
+
+          <!-- Grid Overlay -->
+          <div class="over gridov"></div>
+
+          <!-- Drawing Hint -->
+          <div class="hint" id="hint">
+            <div>
+              Start drawing here!
+              <svg viewBox="0 0 90 60"><path pathLength="1" d="M10 8 Q70 4 62 40 M62 40 L50 30 M62 40 L74 32"/></svg>
+            </div>
+          </div>
+
+          <!-- Animation Frame Counter Tag -->
+          <div class="frametag" id="frametag">1 / 1</div>
+        </div>
       </div>
-
-      <div class="tool-group">
-        <span class="group-label">Select</span>
-        <button class="tool-item" data-tool="select" data-tooltip="Select & Move (V)">
-          <i class="fa-solid fa-arrow-pointer"></i>
-        </button>
-      </div>
-
-      <div class="dock-separator"></div>
-
-      <div class="tool-group">
-        <span class="group-label">Draw</span>
-        <button class="tool-item active" data-tool="brush" data-tooltip="Smooth Brush (B)">
-          <i class="fa-solid fa-paintbrush"></i>
-        </button>
-        <button class="tool-item" id="dockBrushLibBtn" data-tooltip="Browse 180+ Brushes Library">
-          <i class="fa-solid fa-layer-group"></i>
-        </button>
-        <button class="tool-item" data-tool="pencil" data-tooltip="Fine Pencil (P)">
-          <i class="fa-solid fa-pencil"></i>
-        </button>
-        <button class="tool-item" data-tool="neon" data-tooltip="Neon Glow (G)">
-          <i class="fa-solid fa-bolt-lightning"></i>
-        </button>
-        <button class="tool-item" data-tool="rainbow" data-tooltip="Rainbow Stream (R)">
-          <i class="fa-solid fa-rainbow"></i>
-        </button>
-        <button class="tool-item" data-tool="spray" data-tooltip="Airbrush / Spray (A)">
-          <i class="fa-solid fa-spray-can"></i>
-        </button>
-        <button class="tool-item" data-tool="highlighter" data-tooltip="Highlighter (H)">
-          <i class="fa-solid fa-highlighter"></i>
-        </button>
-        <button class="tool-item" data-tool="eraser" data-tooltip="Eraser (E)">
-          <i class="fa-solid fa-eraser"></i>
-        </button>
-      </div>
-
-      <div class="dock-separator"></div>
-
-      <div class="tool-group">
-        <span class="group-label">Shapes</span>
-        <button class="tool-item" data-tool="line" data-tooltip="Straight Line (L)">
-          <i class="fa-solid fa-slash"></i>
-        </button>
-        <button class="tool-item" data-tool="arrow" data-tooltip="Arrow Pointer">
-          <i class="fa-solid fa-arrow-trend-up"></i>
-        </button>
-        <button class="tool-item" data-tool="rectangle" data-tooltip="Rectangle / Box">
-          <i class="fa-regular fa-square"></i>
-        </button>
-        <button class="tool-item" data-tool="circle" data-tooltip="Circle / Ellipse">
-          <i class="fa-regular fa-circle"></i>
-        </button>
-        <button class="tool-item" data-tool="star" data-tooltip="Star Shape">
-          <i class="fa-regular fa-star"></i>
-        </button>
-        <button class="tool-item" data-tool="heart" data-tooltip="Heart Shape">
-          <i class="fa-regular fa-heart"></i>
-        </button>
-      </div>
-
-      <div class="dock-separator"></div>
-
-      <div class="tool-group">
-        <span class="group-label">Tools</span>
-        <button class="tool-item" data-tool="fill" data-tooltip="Bucket Fill (F)">
-          <i class="fa-solid fa-fill-drip"></i>
-        </button>
-        <button class="tool-item" data-tool="pipette" data-tooltip="Eyedropper (I)">
-          <i class="fa-solid fa-eye-dropper"></i>
-        </button>
-        <button class="tool-item" data-tool="text" data-tooltip="Add Text (T)">
-          <i class="fa-solid fa-font"></i>
-        </button>
-        <button class="tool-item" data-tool="stamp" data-tooltip="Emoji Stamp">
-          <i class="fa-regular fa-face-smile"></i>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Edge Re-open Triggers (visible when sidebars are collapsed) -->
-    <button id="leftEdgeTrigger" class="edge-tab left-edge" title="Show Tools (Ctrl+B)">
-      <i class="fa-solid fa-chevron-right"></i>
-    </button>
-    <button id="rightEdgeTrigger" class="edge-tab right-edge" title="Show Properties Panel">
-      <i class="fa-solid fa-chevron-left"></i>
-    </button>
-
-    <!-- Canvas Viewport -->
-    <main class="canvas-stage" id="canvasStage">
-      <div class="canvas-board" id="canvasBoard">
-        <canvas id="gridCanvas"></canvas>
-        <canvas id="paintCanvas"></canvas>
-        <canvas id="previewCanvas"></canvas>
-        <canvas id="cursorCanvas"></canvas>
-        <!-- Floating Inline Canvas Text Input -->
-        <textarea id="inlineCanvasTextInput" class="inline-canvas-text hidden" placeholder="Type here..." rows="1"></textarea>
-      </div>
-      <!-- Symmetry Guide Line -->
-      <div class="symmetry-guide" id="symmetryGuide"></div>
     </main>
 
-    <!-- Right Side Properties & Layers Panel -->
-    <aside class="properties-panel" id="propertiesPanel">
-      <!-- Tab Header Switcher -->
-      <div class="panel-header-tabs">
-        <button id="tabPropertiesBtn" class="panel-tab-btn active" title="Tool & Color Settings">
-          <i class="fa-solid fa-sliders"></i>
-          <span>Properties</span>
-        </button>
-        <button id="tabLayersBtn" class="panel-tab-btn" title="Layer Stack">
-          <i class="fa-solid fa-layer-group"></i>
-          <span>Layers</span>
-          <span id="layersCountBadge" class="panel-tab-badge">1</span>
-        </button>
-        <button id="collapsePanelBtn" class="dock-collapse-btn" title="Hide Panel">
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
+    <!-- Right Notebook Side Panels -->
+    <aside class="side" aria-label="Panels">
+      <div class="ptabs" role="tablist">
+        <button class="ptab on" data-pane="paint" role="tab">Paint</button>
+        <button class="ptab" data-pane="layers" role="tab">Layers <span id="lcount">1</span></button>
+        <button class="ptab animonly" data-pane="onion" role="tab">Onion</button>
       </div>
 
-      <!-- Tab 1: Properties Content -->
-      <div id="propertiesContent" class="panel-tab-content">
-        <!-- Brush & Stroke Config Card -->
-        <div class="panel-section">
-          <div class="section-head">
-            <span class="head-title">Stroke Properties</span>
-            <div class="preview-ring" id="previewRing">
-              <div id="brushDotPreview"></div>
-            </div>
-          </div>
+      <div class="pbody">
+        <!-- Paint Pane -->
+        <div class="pane on" id="pane-paint">
+          <!-- Artist Palette with Hand-mixed Blobs -->
+          <section class="palette">
+            <h4>Paint</h4>
+            <div class="blobs" id="blobs"></div>
+          </section>
 
-          <!-- Active Brush Preset Card -->
-          <div class="field-item">
-            <div class="field-label">
-              <span>Brush Preset</span>
-              <span id="activeBrushBadge" class="value-tag">Medium Round</span>
-            </div>
-            <button id="panelOpenBrushLibBtn" class="brush-preset-quick-btn" title="Browse 180+ Handcrafted Brushes">
-              <i class="fa-solid fa-paintbrush"></i>
-              <span id="activeBrushPanelLabel">Browse 180+ Brushes...</span>
-            </button>
-          </div>
+          <!-- Stroke Size Note -->
+          <section class="note n1">
+            <h4>Brush size <em id="sizeVal">8</em></h4>
+            <div class="preview"><i id="sizeDot"></i></div>
+            <input type="range" id="size" min="1" max="100" value="8" aria-label="Brush size">
+          </section>
 
-          <!-- Stroke Width -->
-          <div class="field-item">
-            <div class="field-label">
-              <span>Brush Size</span>
-              <span id="sizeBadge" class="value-tag">8px</span>
-            </div>
-            <input type="range" id="brushSize" min="1" max="100" value="8" class="glow-slider">
-            <div class="preset-pills">
-              <button class="pill-btn" data-size="3">Fine (3)</button>
-              <button class="pill-btn active" data-size="8">Med (8)</button>
-              <button class="pill-btn" data-size="20">Bold (20)</button>
-              <button class="pill-btn" data-size="50">Thick (50)</button>
-            </div>
-          </div>
+          <!-- Opacity Note -->
+          <section class="note n2">
+            <h4>Opacity <em id="opVal">100%</em></h4>
+            <input type="range" id="opacity" min="5" max="100" value="100" aria-label="Opacity">
+          </section>
 
-          <!-- Opacity Slider -->
-          <div class="field-item">
-            <div class="field-label">
-              <span>Opacity</span>
-              <span id="opacityBadge" class="value-tag">100%</span>
-            </div>
-            <input type="range" id="brushOpacity" min="5" max="100" value="100" class="glow-slider">
-          </div>
-
-          <!-- Stylus Pressure Dynamics Toggle -->
-          <div class="field-item">
-            <label class="toggle-checkbox" title="Dynamic brush stroke size and opacity modulation based on stylus/pen pressure">
-              <input type="checkbox" id="pressureDynamicsCheck" checked>
-              <span class="custom-box"></span>
-              <span>Stylus Pressure Dynamics</span>
+          <!-- Dynamics & Shape Fill Note -->
+          <section class="note n4">
+            <h4>Stabilizer <em class="stabVal">0</em></h4>
+            <input type="range" class="js-stab" min="0" max="100" value="0" aria-label="Stroke stabilizer">
+            <label class="switch" style="margin-top:6px">
+              <input type="checkbox" id="fillShape"><i></i> Fill shapes
             </label>
-          </div>
+          </section>
 
-          <!-- Shape Fill Option -->
-          <div class="field-item shape-config hidden" id="shapeConfig">
-            <label class="toggle-checkbox">
-              <input type="checkbox" id="shapeFillCheck">
-              <span class="custom-box"></span>
-              <span>Fill Shape with Color</span>
-            </label>
-          </div>
-
-          <!-- Stamp Selector -->
-          <div class="field-item stamp-config hidden" id="stampConfig">
-            <span class="field-label">Select Stamp</span>
-            <div class="stamp-selector">
-              <button class="stamp-choice active" data-emoji="⭐">⭐</button>
-              <button class="stamp-choice" data-emoji="❤️">❤️</button>
-              <button class="stamp-choice" data-emoji="🔥">🔥</button>
-              <button class="stamp-choice" data-emoji="✨">✨</button>
-              <button class="stamp-choice" data-emoji="🚀">🚀</button>
-              <button class="stamp-choice" data-emoji="🎨">🎨</button>
-              <button class="stamp-choice" data-emoji="⚡">⚡</button>
-              <button class="stamp-choice" data-emoji="🌸">🌸</button>
-            </div>
-          </div>
+          <!-- Shortcuts Sticky Note -->
+          <section class="note n3" id="keysNote">
+            <h4>? Shortcuts <em>tap</em></h4>
+            <ul class="keys">
+              <li><b>B P E</b></li><li>brush · pencil · eraser</li>
+              <li><b>G I T S</b></li><li>fill · pipette · text · select</li>
+              <li><b>K</b></li><li>180+ brush library</li>
+              <li><b>[ ]</b></li><li>brush size</li>
+              <li><b>Ctrl+Z / Y</b></li><li>undo / redo</li>
+              <li><b>Ctrl+S / O</b></li><li>save / open .craft</li>
+              <li><b>Ctrl+B</b></li><li>toggle floating dock</li>
+              <li><b>Space</b></li><li>pan · play (anim)</li>
+              <li><b>0 + −</b></li><li>zoom controls</li>
+              <li><b>Z</b></li><li>zen mode</li>
+            </ul>
+          </section>
         </div>
 
-        <!-- Color Palette Card -->
-        <div class="panel-section">
-          <div class="section-head">
-            <span class="head-title">Color Palette</span>
-            <div class="active-color-swatch" id="activeColorSwatch" title="Current Active Color"></div>
+        <!-- Layers Pane -->
+        <div class="pane" id="pane-layers">
+          <div class="lbar">
+            <button class="pbtn" id="lAdd" title="New layer">＋ New</button>
+            <button class="pbtn" id="lDup" title="Duplicate layer">⧉ Copy</button>
+            <button class="pbtn" id="lMerge" title="Merge layer down">⤓ Merge down</button>
+            <button class="pbtn" id="lDel" title="Delete layer">✕ Delete</button>
           </div>
-
-          <!-- Custom Color Trigger -->
-          <div class="color-picker-row">
-            <input type="color" id="nativeColorPicker" value="#6366f1">
-            <label for="nativeColorPicker" class="custom-picker-btn">
-              <i class="fa-solid fa-palette"></i>
-              <span>Pick Any Custom Color</span>
-            </label>
-            <span id="hexCodeBadge" class="hex-tag">#6366F1</span>
-          </div>
-
-          <!-- Curated Palette Grid -->
-          <div class="swatch-grid">
-            <button class="swatch-btn active" style="--c: #6366f1;" data-color="#6366f1" title="Indigo"></button>
-            <button class="swatch-btn" style="--c: #3b82f6;" data-color="#3b82f6" title="Vibrant Blue"></button>
-            <button class="swatch-btn" style="--c: #06b6d4;" data-color="#06b6d4" title="Cyan"></button>
-            <button class="swatch-btn" style="--c: #10b981;" data-color="#10b981" title="Emerald Green"></button>
-            <button class="swatch-btn" style="--c: #eab308;" data-color="#eab308" title="Sunny Yellow"></button>
-            <button class="swatch-btn" style="--c: #f97316;" data-color="#f97316" title="Bright Orange"></button>
-            <button class="swatch-btn" style="--c: #ef4444;" data-color="#ef4444" title="Crimson Red"></button>
-            <button class="swatch-btn" style="--c: #ec4899;" data-color="#ec4899" title="Hot Pink"></button>
-            <button class="swatch-btn" style="--c: #a855f7;" data-color="#a855f7" title="Purple"></button>
-            <button class="swatch-btn" style="--c: #00ffcc;" data-color="#00ffcc" title="Neon Teal"></button>
-            <button class="swatch-btn" style="--c: #ff007f;" data-color="#ff007f" title="Neon Rose"></button>
-            <button class="swatch-btn" style="--c: #ffffff;" data-color="#ffffff" title="Pure White"></button>
-            <button class="swatch-btn" style="--c: #94a3b8;" data-color="#94a3b8" title="Cool Gray"></button>
-            <button class="swatch-btn" style="--c: #334155;" data-color="#334155" title="Slate"></button>
-            <button class="swatch-btn" style="--c: #854d0e;" data-color="#854d0e" title="Warm Amber"></button>
-            <button class="swatch-btn" style="--c: #000000;" data-color="#000000" title="Jet Black"></button>
-          </div>
+          <div class="llist" id="llist"></div>
+          <p class="hintline">Drag ⠿ to reorder. Double-click a name to rename. Blend modes: Multiply, Screen, Overlay…</p>
         </div>
 
-        <!-- Quick Shortcuts Card -->
-        <div class="panel-section shortcuts-section">
-          <div class="section-head">
-            <span class="head-title">Keyboard Shortcuts</span>
-            <i class="fa-regular fa-keyboard text-muted"></i>
-          </div>
-          <div class="shortcut-grid">
-            <div class="shortcut-item"><kbd>V</kbd> <span>Select/Move</span></div>
-            <div class="shortcut-item"><kbd>B</kbd> <span>Brush</span></div>
-            <div class="shortcut-item"><kbd>E</kbd> <span>Eraser</span></div>
-            <div class="shortcut-item"><kbd>G</kbd> <span>Glow</span></div>
-            <div class="shortcut-item"><kbd>F</kbd> <span>Fill</span></div>
-            <div class="shortcut-item"><kbd>T</kbd> <span>Text</span></div>
-            <div class="shortcut-item"><kbd>Del</kbd> <span>Delete</span></div>
-            <div class="shortcut-item"><kbd>Tab</kbd> <span>Zen Mode</span></div>
-          </div>
+        <!-- Onion Skinning Pane (Animation Mode) -->
+        <div class="pane" id="pane-onion">
+          <section class="note n3" style="--r:.8deg">
+            <h4>Tracing paper</h4>
+            <label class="switch">
+              <input type="checkbox" id="onionT" checked><i></i> Show ghost frames
+            </label>
+          </section>
+
+          <section class="note n2">
+            <h4>Past frames <em id="pastVal">1</em></h4>
+            <input type="range" id="pastN" min="0" max="5" value="1" aria-label="Past frames">
+            <div class="hintline">ghosted in <b style="color:#ff5a4a">red</b></div>
+          </section>
+
+          <section class="note n4">
+            <h4>Future frames <em id="futVal">0</em></h4>
+            <input type="range" id="futN" min="0" max="5" value="0" aria-label="Future frames">
+            <div class="hintline">ghosted in <b style="color:#2fb86a">green</b></div>
+          </section>
+
+          <section class="note n1">
+            <h4>Ghost opacity <em id="gopVal">35%</em></h4>
+            <input type="range" id="gop" min="10" max="100" value="35" aria-label="Ghost opacity">
+          </section>
         </div>
       </div>
-
-      <!-- Tab 2: Layers Panel Content -->
-      <div id="layersPanelContent" class="panel-tab-content hidden"></div>
     </aside>
   </div>
 
-  <!-- Bottom Floating Color & Tool Dock (Enhanced with Full Custom Color Picker & Smart Dragging) -->
-  <div class="floating-quick-bar" id="floatingQuickBar">
-    <!-- Drag Handle -->
-    <div class="quick-bar-drag-handle" id="quickBarDragHandle" title="Drag to move anywhere • Double-click to reset position">
-      <i class="fa-solid fa-grip-vertical"></i>
-    </div>
+  <!-- Bottom Film Strip (Animation Timeline) -->
+  <footer class="film" id="film">
+    <div class="fctl">
+      <div class="transport">
+        <button class="tb" id="tFirst" aria-label="First frame" title="First">⏮</button>
+        <button class="tb" id="tBack" aria-label="Step back" title="Step back (←)">◀</button>
+        
+        <!-- Animated Hand Crank Button -->
+        <button class="crank" id="play" aria-label="Play animation (Space)">
+          <svg viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="21" fill="#f7c948" stroke="#2b2a33" stroke-width="3"/>
+            <g class="arm">
+              <path d="M24 24 L24 8" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round"/>
+              <circle cx="24" cy="8" r="5.5" fill="#ff6b4a" stroke="#2b2a33" stroke-width="2.5"/>
+            </g>
+            <circle cx="24" cy="24" r="4.5" fill="#2b2a33"/>
+          </svg>
+        </button>
 
-    <!-- Quick Tools -->
-    <div class="quick-tools">
-      <button class="quick-btn active" data-action="select" title="Select & Move (V)"><i class="fa-solid fa-arrow-pointer"></i></button>
-      <button class="quick-btn" data-action="brush" title="Brush (B)"><i class="fa-solid fa-paintbrush"></i></button>
-      <button class="quick-btn" data-action="pencil" title="Fine Pencil (P)"><i class="fa-solid fa-pencil"></i></button>
-      <button class="quick-btn" data-action="eraser" title="Eraser (E)"><i class="fa-solid fa-eraser"></i></button>
-      <button class="quick-btn" data-action="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-arrow-rotate-left"></i></button>
-      <button class="quick-btn" data-action="redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-arrow-rotate-right"></i></button>
-    </div>
-
-    <div class="bar-separator"></div>
-
-    <!-- Quick Color Selector + Any Custom Color Wheel Button -->
-    <div class="quick-colors">
-      <div class="bottom-custom-color-wrap" title="Pick Any Custom Color">
-        <input type="color" id="bottomColorPicker" value="#6366f1">
-        <label for="bottomColorPicker" class="color-wheel-btn" id="bottomColorWheelBtn" title="Choose ANY Custom Color">
-          <i class="fa-solid fa-palette"></i>
-        </label>
+        <button class="tb" id="tFwd" aria-label="Step forward" title="Step forward (→)">▶</button>
+        <button class="tb" id="tLast" aria-label="Last frame" title="Last">⏭</button>
       </div>
 
-      <span class="quick-dot active" style="background:#6366f1" data-color="#6366f1" title="Indigo"></span>
-      <span class="quick-dot" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></span>
-      <span class="quick-dot" style="background:#10b981" data-color="#10b981" title="Green"></span>
-      <span class="quick-dot" style="background:#eab308" data-color="#eab308" title="Yellow"></span>
-      <span class="quick-dot" style="background:#ef4444" data-color="#ef4444" title="Red"></span>
-      <span class="quick-dot" style="background:#ec4899" data-color="#ec4899" title="Pink"></span>
-      <span class="quick-dot" style="background:#ffffff" data-color="#ffffff" title="White"></span>
-      <span class="quick-dot" style="background:#000000" data-color="#000000" title="Black"></span>
-    </div>
+      <small id="playLabel">Crank to play</small>
 
-    <!-- Minimize / Collapse Dock Button -->
-    <button class="quick-bar-collapse-btn" id="quickBarCollapseBtn" title="Minimize Toolbar">
-      <i class="fa-solid fa-chevron-down"></i>
-    </button>
-
-    <!-- Minimized Icon (Visible when collapsed into floating bubble) -->
-    <div class="quick-bar-expand-icon" title="Click to Expand Toolbar">
-      <i class="fa-solid fa-paintbrush"></i>
-    </div>
-  </div>
-
-  <!-- Text Input Modal -->
-  <div class="modal-overlay hidden" id="textInputModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>Add Text on Canvas</h3>
-        <button id="modalCloseBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+      <!-- Playback Speed -->
+      <div class="fps">
+        <label for="fps">speed: <b id="fpsVal">12</b> fps</label>
+        <input type="range" id="fps" min="1" max="60" value="12">
       </div>
-      <div class="modal-body">
-        <input type="text" id="canvasTextInput" placeholder="Type your text here..." autofocus>
-        <div class="modal-row">
-          <label>Font Size:
-            <select id="modalFontSize">
-              <option value="20">Small (20px)</option>
-              <option value="32" selected>Medium (32px)</option>
-              <option value="48">Large (48px)</option>
-              <option value="72">Extra Large (72px)</option>
-            </select>
-          </label>
+
+      <button class="tb" id="loopB" style="width:auto;padding:0 10px;margin-top:-2px">
+        🔁 loop: <b id="loopV" style="margin-left:4px">on</b>
+      </button>
+    </div>
+
+    <!-- Frame Thumbnail Strip -->
+    <div class="strip" id="strip" aria-label="Frames"></div>
+
+    <!-- Frame Manipulation Actions -->
+    <div class="fside">
+      <button class="pbtn" id="addF">＋ New</button>
+      <button class="pbtn" id="dupF">⧉ Copy</button>
+      <button class="pbtn w2" id="delF">✕ Delete frame</button>
+      <div class="holdctl">
+        <span>hold frame:</span>
+        <button class="pbtn" id="holdM">−</button>
+        <b id="holdV">×1</b>
+        <button class="pbtn" id="holdP">＋</button>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- Draggable Floating Quick Dock -->
+<div class="dock" id="dock" role="toolbar" aria-label="Quick tools">
+  <span class="grip" id="grip" title="Drag anywhere">⠿⠿</span>
+  <span class="dextra" id="dockTools" style="display:contents"></span>
+  <span class="dsep dextra"></span>
+  <button class="d dextra" id="dUndo" aria-label="Undo" title="Undo (Ctrl+Z)">
+    <svg viewBox="0 0 24 24"><path d="M9 7 L4 12 L9 17 M4 12 H15 a5 5 0 0 1 0 10"/></svg>
+  </button>
+  <button class="d dextra" id="dRedo" aria-label="Redo" title="Redo (Ctrl+Y)">
+    <svg viewBox="0 0 24 24"><path d="M15 7 L20 12 L15 17 M20 12 H9 a5 5 0 0 0 0 10"/></svg>
+  </button>
+  <span class="swatch dextra" id="dockSw" style="background:#2b2a33;margin:0 4px"></span>
+  <button class="d" id="dMin" aria-label="Minimise dock" title="Minimise">
+    <svg viewBox="0 0 24 24"><path d="M6 12 H18"/></svg>
+  </button>
+</div>
+
+<!-- Zen Mode Exit Button -->
+<button class="pbtn zenexit" id="zenX">Exit zen (Z)</button>
+
+<!-- Brush Cursor Ring -->
+<div class="ring" id="ring"></div>
+
+<!-- Toast Popup Notification -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ================= Modal 1: 180+ Brush Library ================= -->
+<div class="modal" id="m-brush" role="dialog" aria-modal="true" aria-label="Brush library">
+  <div class="sheet">
+    <span class="tape t"></span>
+    <button class="xbtn" data-close aria-label="Close">×</button>
+    <h2>Brush library</h2>
+    <p class="sub">180+ artisan digital brushes · live stroke preview · press <b>K</b> any time</p>
+    
+    <div class="blib">
+      <div>
+        <input class="search" id="bsearch" placeholder="🔍 search: grainy, 6B, hair, smoke, chalk…" aria-label="Search brushes">
+        <div class="cats" id="cats"></div>
+      </div>
+      <div class="bgrid" id="bgrid"></div>
+    </div>
+
+    <div class="micro">
+      <div class="fld">
+        <span>Size control</span>
+        <div class="seg" id="sizeCtl">
+          <button data-v="off">Off</button>
+          <button data-v="pressure" class="on">Pressure</button>
+          <button data-v="velocity">Velocity</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button id="cancelTextBtn" class="btn secondary-btn">Cancel</button>
-        <button id="confirmTextBtn" class="btn primary-btn">Insert Text</button>
+      <div class="fld">
+        <span>Minimum size <b id="minVal">1px</b></span>
+        <input type="range" id="minSize" min="0" max="20" value="1" aria-label="Minimum size">
+      </div>
+      <div class="fld">
+        <span>Opacity control</span>
+        <div class="seg" id="opCtl">
+          <button data-v="off" class="on">Off</button>
+          <button data-v="pressure">Pressure</button>
+        </div>
+      </div>
+      <div class="fld">
+        <span>Stabilizer <b class="stabVal">0</b></span>
+        <input type="range" class="js-stab" min="0" max="100" value="0" aria-label="Stabilizer">
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="toast-popup"></div>
+<!-- ================= Modal 2: Private Cloud Drawings Gallery ================= -->
+<div class="modal" id="m-gal" role="dialog" aria-modal="true" aria-label="My cloud drawings">
+  <div class="sheet">
+    <span class="tape t"></span>
+    <button class="xbtn" data-close aria-label="Close">×</button>
+    <h2>My cloud drawings</h2>
+    <span class="lock">🔒 private · only you can see these</span>
+    <div class="gal" id="gal"></div>
+    <p class="hintline" style="margin-top:6px">Click a drawing to open it with all its layers · click a name to rename it.</p>
+  </div>
+</div>
 
-  <script type="module" src="js/app.js?v=3.3"></script>
+<!-- ================= Modal 3: Multi-Format Exporter ================= -->
+<div class="modal" id="m-exp" role="dialog" aria-modal="true" aria-label="Export">
+  <div class="sheet md">
+    <span class="tape t"></span>
+    <button class="xbtn" data-close aria-label="Close">×</button>
+    <h2>Export</h2>
+    <p class="sub" id="expSub">Pick a format</p>
+    <div class="opts" id="opts"></div>
+    <div class="mfoot">
+      <label class="switch" id="transWrap">
+        <input type="checkbox" id="transT" checked><i></i> Transparent background
+      </label>
+      <span class="spacer"></span>
+      <button class="pbtn" data-close>Cancel</button>
+      <button class="pbtn go" id="expGo">⬇ Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal 4: Canvas Dimensions & Aspect Ratio ================= -->
+<div class="modal" id="m-size" role="dialog" aria-modal="true" aria-label="Canvas size">
+  <div class="sheet md">
+    <span class="tape t"></span>
+    <button class="xbtn" data-close aria-label="Close">×</button>
+    <h2>Canvas size</h2>
+    <p class="sub">Changing the size sets up your workspace canvas.</p>
+    <div class="presets" id="presets"></div>
+    <div class="custom">
+      Custom: 
+      <input type="number" id="cw" min="100" max="3840" value="1280" aria-label="Width"> × 
+      <input type="number" id="ch" min="100" max="2160" value="720" aria-label="Height"> px 
+      <span class="hintline">(100 → 3840 × 2160)</span>
+    </div>
+    <div class="mfoot">
+      <button class="pbtn" data-close>Cancel</button>
+      <button class="pbtn go" id="sizeGo">Use this size</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal 5: Supabase Artist Authentication ================= -->
+<div class="modal" id="m-auth" role="dialog" aria-modal="true" aria-label="Sign in">
+  <div class="sheet sm">
+    <span class="tape t"></span>
+    <button class="xbtn" data-close aria-label="Close">×</button>
+    <h2 id="authT">Welcome back!</h2>
+    <p class="sub" id="authSub">Your drawings and animations are private to you.</p>
+
+    <!-- Sign In / Sign Up Selector -->
+    <div class="stab" id="authModeTabs">
+      <button class="on" data-a="in" id="authTabIn">Sign in</button>
+      <button data-a="up" id="authTabUp">Sign up</button>
+    </div>
+
+    <!-- Google OAuth Button -->
+    <button class="google" id="gBtn">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/>
+        <path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/>
+        <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+      </svg>
+      <span>Continue with Google</span>
+    </button>
+
+    <div class="or">or</div>
+
+    <!-- Email & Password Form -->
+    <form id="authForm" novalidate>
+      <div class="field" id="aNameField" style="display:none;">
+        <label for="aName">Artist Name</label>
+        <input id="aName" type="text" placeholder="Your creative name">
+      </div>
+      <div class="field">
+        <label for="aEmail">Email</label>
+        <input id="aEmail" type="email" placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div class="field" id="aPassW">
+        <label for="aPass">Password</label>
+        <input id="aPass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="pbtn go" style="width:100%;font-family:Caveat;font-size:1.5rem;font-weight:700" type="submit" id="aGo">
+        Sketch In
+      </button>
+      <p style="text-align:center;margin-top:12px">
+        <button type="button" class="linkb" id="magic">✨ Email me a magic link instead</button>
+      </p>
+    </form>
+
+    <!-- Sign Out button (visible when logged in) -->
+    <div id="authSignOutWrap" style="display:none;margin-top:14px;text-align:center;">
+      <button type="button" class="pbtn" id="signOutBtn" style="color:var(--coral);border-color:var(--coral);">
+        Log Out of Studio
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Application Orchestrator -->
+<script type="module" src="js/app.js?v=4.0"></script>
 </body>
 </html>
